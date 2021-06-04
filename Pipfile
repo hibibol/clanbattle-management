@@ -1,0 +1,15 @@
+[[source]]
+name = "pypi"
+verify_ssl = true
+url = "https://pypi.org/simple"
+
+[requires]
+python_version = "3.9"
+
+[packages]
+"discord.py" = "*"
+discord-py-slash-command = "*"
+isort = "*"
+
+[dev-packages]
+flake8 = "*"
