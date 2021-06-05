@@ -349,6 +349,7 @@ class ClanBattle(commands.Cog):
             clan_data.reserve_message_ids[i] = reserve_message.id
             await reserve_message.add_reaction(EMOJI_PHYSICS)
             await reserve_message.add_reaction(EMOJI_MAGIC)
+            await reserve_message.add_reaction(EMOJI_SETTING)
             await reserve_message.add_reaction(EMOJI_CANCEL)
 
     async def _update_reserve_message(self, clan_data: ClanData, boss_idx: int) -> None:
