@@ -165,6 +165,37 @@ class ClanBattle(commands.Cog):
         await self._initialize_reserve_message(clan_data)
         SQLiteUtil.update_clandata(clan_data)
 
+    async def _delete_reserve_by_attak(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
+        """ボス攻撃時に予約の削除を行う"""
+        reserve_idx = -1
+        for i, reserve_data in enumerate(clan_data.reserve_list[boss_idx]):
+            if reserve_data.carry_over == attack_status.carry_over and reserve_data.attack_type == attack_status.attack_type\
+               and reserve_data.player_data == attack_status.player_data:
+                reserve_idx = i
+        if reserve_idx != -1:
+            SQLiteUtil.delete_reservedata(clan_data, boss_idx, clan_data.reserve_list[boss_idx][reserve_idx])
+            del clan_data.reserve_list[boss_idx][reserve_idx]
+            await self._update_reserve_message(clan_data, boss_idx)
+
+        # 凸が完了もしくは持ち越しを吐ききったらそれらに関する予約を削除する
+        player_data = attack_status.player_data
+        attack_comp = player_data.magic_attack + player_data.physics_attack == 3
+        co_comp = len(player_data.carry_over_list) == 0
+        if attack_comp or co_comp:
+            for i in range(5):
+                old_reserve_set = set(clan_data.reserve_list[i])
+                new_reserve_set = {
+                    reserve_data
+                    for reserve_data in clan_data.reserve_list[i]
+                    if (attack_comp and reserve_data.player_data.user_id == player_data.user_id and not reserve_data.carry_over)
+                }
+                diff_set = old_reserve_set - new_reserve_set
+                if diff_set:
+                    for reserve_data in diff_set:
+                        SQLiteUtil.delete_reservedata(clan_data, i, reserve_data)
+                    clan_data.reserve_list[i] = list(new_reserve_set)
+                    await self._update_reserve_message(clan_data, boss_idx)
+
     def _create_progress_message(self, clan_data: ClanData, boss_index: int, guild: discord.Guild) -> discord.Embed:
         """進行用のメッセージを作成する"""
         attacked_list: List[str] = []
