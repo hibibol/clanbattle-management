@@ -121,12 +121,7 @@ class ClanBattle(commands.Cog):
         )
         self.clan_data[category.id] = clan_data
         await self._initialize_progress_messages(clan_data)
-        await self._intizlize_reserve_message(clan_data)
-
-        remain_attack_embed = self._create_remain_attaack_message(clan_data)
-        remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
-        remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
-        clan_data.remain_attack_message_id = remain_attack_message.id
+        await self._initialize_remain_attack_message(clan_data)
         SQLiteUtil.register_clandata(clan_data)
         await ctx.channel.send("セットアップが完了しました")
 
@@ -324,6 +319,13 @@ class ClanBattle(commands.Cog):
         remain_attack_embed = self._create_remain_attaack_message(clan_data)
         await remain_attack_message.edit(embed=remain_attack_embed)
 
+    async def _initialize_remain_attack_message(self, clan_data: ClanData) -> None:
+        """残凸状況を表示するメッセージの初期化を行う"""
+        remain_attack_embed = self._create_remain_attaack_message(clan_data)
+        remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
+        remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
+        clan_data.remain_attack_message_id = remain_attack_message.id
+
     async def _get_reserve_info(
         self, clan_data: ClanData, player_data: PlayerData, user: discord.User
     ) -> Optional[Tuple[int, str, bool]]:
@@ -411,14 +413,8 @@ class ClanBattle(commands.Cog):
         if clan_data.date != today:
             clan_data.date = today
 
-            for player_data in clan_data.player_data_dict.values():
-                player_data.initialize_attack()
-                SQLiteUtil.update_playerdata(clan_data, player_data)
-
-            remain_attack_embed = self._create_remain_attaack_message(clan_data)
-            remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
-            remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
-            clan_data.remain_attack_message_id = remain_attack_message.id
+            await self._initialize_reserve_message(clan_data)
+            await self._initialize_remain_attack_message(clan_data)
             SQLiteUtil.update_clandata(clan_data)
 
     @commands.Cog.listener()
