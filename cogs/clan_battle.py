@@ -427,13 +427,13 @@ class ClanBattle(commands.Cog):
         setting_content_co = f"{user.mention} 持ち越しの予約ですか？"
         setting_message_cancel = f"{user.mention} 予約をキャンセルしました"
         setting_content_fin = "予約を受け付けました"
-        command_channnel = await self.bot.get_channel(clan_data.command_channel_id)
+        command_channnel = self.bot.get_channel(clan_data.command_channel_id)
         await command_channnel.send(content=setting_content_damage)
 
         try:
             damage_message: discord.Message = await self.bot.wait_for(
                 'message', timeout=60.0,
-                check=lambda m: m.author == user and m.content.split()[0].isdecimal()
+                check=lambda m: m.author == user and get_damage(m.content)
             )
         except asyncio.TimeoutError:
             await command_channnel.send(setting_message_cancel)
@@ -441,7 +441,7 @@ class ClanBattle(commands.Cog):
 
         damage, memo = get_damage(damage_message.content)
 
-        if player_data.carry_over:
+        if player_data.carry_over_list:
             setting_co_message = await command_channnel.send(content=setting_content_co)
             await setting_co_message.add_reaction(EMOJI_YES)
             await setting_co_message.add_reaction(EMOJI_NO)
