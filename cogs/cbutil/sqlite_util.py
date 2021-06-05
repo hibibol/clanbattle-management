@@ -6,7 +6,7 @@ from cogs.cbutil.attack_type import ATTACK_TYPE_DICT
 from cogs.cbutil.boss_status_data import AttackStatus, BossStatusData
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.player_data import CarryOver, PlayerData
-from cogs.cbutil.reserve_data import RESERVE_TYPE_DICT, ReserveData
+from cogs.cbutil.reserve_data import ReserveData
 from setting import DB_NAME
 
 REGISTER_CLANDATA_SQL = """insert into ClanData values (
@@ -468,6 +468,18 @@ class SQLiteUtil():
             carryover.created
         ) for carryover in player_data.carry_over_list]
         cur.executemany(REGISTER_CLANDATA_SQL, records)
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def delete_all_carryover_data(clan_data: ClanData, plauer_data: PlayerData):
+        """持ち越しのデータをすべて削除する"""
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute("delete from CarryOver where category_id=? and user_id=?", (
+            clan_data.category_id,
+            plauer_data.user_id,
+        ))
         con.commit()
         con.close()
 
