@@ -382,13 +382,15 @@ class ClanBattle(commands.Cog):
             if content:
                 embed.add_field(
                     name=f"残{3-i}凸",
-                    value=content
+                    value=content,
+                    inline=False
                 )
         content = "\n".join(remain_attack_co)
         if content:
             embed.add_field(
                 name="持ち越し所持者",
-                value=content
+                value=content,
+                inline=False
             )
         embed.set_footer(
             text=f"{clan_data.lap}週目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
