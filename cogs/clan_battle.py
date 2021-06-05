@@ -319,7 +319,6 @@ class ClanBattle(commands.Cog):
 
     async def _update_remain_attack_message(self, clan_data: ClanData) -> None:
         """残凸状況を表示するメッセージを更新する"""
-        await self._check_date_update(clan_data)
         remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
         remain_attack_message = await remain_attack_channel.fetch_message(clan_data.remain_attack_message_id)
         remain_attack_embed = self._create_remain_attaack_message(clan_data)
@@ -510,6 +509,7 @@ class ClanBattle(commands.Cog):
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_ATTACK:
+            await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.ATTACK, boss_index, player_data.__dict__))
@@ -518,6 +518,7 @@ class ClanBattle(commands.Cog):
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
+            await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.__dict__))
