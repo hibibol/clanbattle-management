@@ -23,9 +23,9 @@ from cogs.cbutil.reserve_data import (RESERVE_TYPE_DICT, ReserveData,
                                       ReserveType)
 from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage
-from setting import (BOSS_COLOURS, EMOJI_ANY, EMOJI_ATTACK, EMOJI_CANCEL,
-                     EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_ONLY,
-                     EMOJI_PHYSICS, EMOJI_REVERSE, EMOJI_YES, JST)
+from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL,
+                     EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO,
+                     EMOJI_PHYSICS, EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
 
 logger = getLogger(__name__)
 
@@ -51,7 +51,7 @@ class ClanBattle(commands.Cog):
                 required=False
             )
         ],
-        guild_ids=[845661889161068556, 572631884224528384]
+        guild_ids=GUILD_IDS
     )
     async def add(self, ctx: SlashContext, role: Optional[discord.Role] = None, member: Optional[discord.User] = None) -> None:
         clan_data = self.clan_data[ctx.channel.category_id]
@@ -89,7 +89,7 @@ class ClanBattle(commands.Cog):
                 required=False
             )
         ],
-        guild_ids=[845661889161068556, 572631884224528384]
+        guild_ids=GUILD_IDS
     )
     async def setup(self, ctx: SlashContext, category_channel_name: str = ""):
         """凸管理用チャンネルを作成するセットアップを実施する"""
@@ -140,7 +140,7 @@ class ClanBattle(commands.Cog):
                 required=True
             )
         ],
-        guild_ids=[845661889161068556, 572631884224528384]
+        guild_ids=GUILD_IDS
     )
     async def lap(self, ctx: SlashContext, lap: int):
         """周回数を設定する"""
