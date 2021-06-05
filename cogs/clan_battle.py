@@ -19,8 +19,7 @@ from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.operation_type import OperationType
 from cogs.cbutil.player_data import PlayerData
-from cogs.cbutil.reserve_data import (RESERVE_TYPE_DICT, ReserveData,
-                                      ReserveType)
+from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL,
