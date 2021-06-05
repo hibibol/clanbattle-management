@@ -121,6 +121,7 @@ class ClanBattle(commands.Cog):
         )
         self.clan_data[category.id] = clan_data
         await self._initialize_progress_messages(clan_data)
+        await self._initialize_reserve_message(clan_data)
         await self._initialize_remain_attack_message(clan_data)
         SQLiteUtil.register_clandata(clan_data)
         await ctx.channel.send("セットアップが完了しました")
@@ -297,7 +298,7 @@ class ClanBattle(commands.Cog):
         rs_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
         return rs_embed
 
-    async def _intizlize_reserve_message(self, clan_data: ClanData) -> None:
+    async def _initialize_reserve_message(self, clan_data: ClanData) -> None:
         """新しい予約メッセージを送信する"""
         guild = self.bot.get_guild(clan_data.guild_id)
         reserve_channel = self.bot.get_channel(clan_data.reserve_channel_id)
@@ -457,7 +458,7 @@ class ClanBattle(commands.Cog):
     #         player_data.initialize_attack()
     #         SQLiteUtil.update_playerdata(clan_data, player_data)
     #     await self._initialize_progress_messages(clan_data)
-    #     await self._intizlize_reserve_message(clan_data)
+    #     await self._initialize_reserve_message(clan_data)
 
     #     remain_attack_embed = self._create_remain_attaack_message(clan_data)
     #     remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
