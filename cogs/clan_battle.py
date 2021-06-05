@@ -286,7 +286,7 @@ class ClanBattle(commands.Cog):
         """予約状況を表示するためのメッセージを作成する"""
         resreve_message_title = f"**{ClanBattleData.boss_names[boss_index]}** の 予約状況"
         reserve_message_list = []
-        for reserve_data in clan_data.reserve_dict[boss_index]:
+        for reserve_data in clan_data.reserve_list[boss_index]:
             user = guild.get_member(reserve_data.player_data.user_id)
             reserve_message_list.append(reserve_data.create_reserve_txt(user.display_name))
 
@@ -379,7 +379,7 @@ class ClanBattle(commands.Cog):
         for player_data in clan_data.player_data_dict.values():
             player_data.initialize_attack()
             SQLiteUtil.update_playerdata(clan_data, player_data)
-        clan_data.reserve_dict = [
+        clan_data.reserve_list = [
             [], [], [], [], []
         ]
         SQLiteUtil.delete_all_reservedata(clan_data)
@@ -508,7 +508,7 @@ class ClanBattle(commands.Cog):
                     reserve_data = ReserveData(
                     player_data, attack_type
                     )
-                    clan_data.reserve_dict[boss_index].append(reserve_data)
+                clan_data.reserve_list[boss_index].append(reserve_data)
                     await self._update_reserve_message(clan_data, boss_index)
                     SQLiteUtil.register_reservedata(clan_data, boss_index, reserve_data)
             else:
@@ -547,21 +547,21 @@ class ClanBattle(commands.Cog):
         # 押した人が一番最後に登録した予約を削除する
         elif str(payload.emoji) == EMOJI_CANCEL and reserve_flag:
             reserve_index = -1
-            for i, reserve_data in enumerate(clan_data.reserve_dict[boss_index][::-1]):
+            for i, reserve_data in enumerate(clan_data.reserve_list[boss_index][::-1]):
                 if reserve_data.player_data.user_id == payload.user_id:
-                    reserve_index = len(clan_data.reserve_dict[boss_index]) - i - 1
+                    reserve_index = len(clan_data.reserve_list[boss_index]) - i - 1
                     break
             if reserve_index != -1:
-                SQLiteUtil.delete_reservedata(clan_data, boss_index, clan_data.reserve_dict[boss_index][reserve_index])
-                del clan_data.reserve_dict[boss_index][reserve_index]
+                SQLiteUtil.delete_reservedata(clan_data, boss_index, clan_data.reserve_list[boss_index][reserve_index])
+                del clan_data.reserve_list[boss_index][reserve_index]
                 await self._update_reserve_message(clan_data, boss_index)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_SETTING and reserve_flag:
             reserve_index = -1
-            for i, reserve_data in enumerate(clan_data.reserve_dict[boss_index][::-1]):
+            for i, reserve_data in enumerate(clan_data.reserve_list[boss_index][::-1]):
                 if reserve_data.player_data.user_id == payload.user_id:
-                    reserve_index = len(clan_data.reserve_dict[boss_index]) - i - 1
+                    reserve_index = len(clan_data.reserve_list[boss_index]) - i - 1
                     reserve_info = await self._get_reserve_info(clan_data, player_data, user)
                     reserve_data.set_reserve_info(reserve_info)
                     await self._update_reserve_message(clan_data, boss_index)
