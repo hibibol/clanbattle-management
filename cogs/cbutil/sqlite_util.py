@@ -56,12 +56,12 @@ REGISTER_PLAYERDATA_SQL = """insert into PlayerData values (
     :category_id,
     :user_id,
     0,
-    0,
+    0
 )"""
 UPDATE_PLAYERDATA_SQL = """update PlayerData
     set
         physics_attack=?,
-        magic_attack=?,
+        magic_attack=?
     where
         category_id=? and user_id=?
 """
