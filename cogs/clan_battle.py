@@ -165,7 +165,7 @@ class ClanBattle(commands.Cog):
         await self._initialize_reserve_message(clan_data)
         SQLiteUtil.update_clandata(clan_data)
 
-    async def _delete_reserve_by_attak(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
+    async def _delete_reserve_by_attack(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
         """ボス攻撃時に予約の削除を行う"""
         reserve_idx = -1
         for i, reserve_data in enumerate(clan_data.reserve_list[boss_idx]):
@@ -278,6 +278,7 @@ class ClanBattle(commands.Cog):
         SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
         await self._update_progress_message(clan_data, boss_index)
         await self._update_remain_attack_message(clan_data)
+        await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
     
     async def _last_attack_boss(
         self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
@@ -314,6 +315,7 @@ class ClanBattle(commands.Cog):
             await self._initialize_progress_messages(clan_data)
         SQLiteUtil.update_clandata(clan_data)
         await self._update_remain_attack_message(clan_data)
+        await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
 
     def _create_reserve_message(self, clan_data: ClanData, boss_index: int, guild: discord.Guild) -> discord.Embed:
         """予約状況を表示するためのメッセージを作成する"""
