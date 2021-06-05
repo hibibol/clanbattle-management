@@ -16,7 +16,7 @@ class CarryOver():
 
     def __str__(self) -> str:
         txt = f"{self.created.strftime('%H:%M:%S')}発生 {ClanBattleData().boss_names[self.boss_index]}"
-        if self.carry_over_list != -1:
+        if self.carry_over_time != -1:
             txt += f" {self.carry_over_time}秒"
         return txt + "持ち越し"
 
@@ -33,12 +33,13 @@ class PlayerData():
         """凸の進捗状況の初期化を実施する"""
         self.physics_attack = 0
         self.magic_attack = 0
+        self.carry_over_list = []
 
     def create_txt(self, display_name: str) -> None:
         """残凸表示時のメッセージを作成する"""
         txt = f"{display_name} \t {EMOJI_PHYSICS}{self.physics_attack} {EMOJI_MAGIC}{self.magic_attack}"
         if self.carry_over_list:
-            txt += "\n\t" + '\n\t'.join([str(carry_over) for carry_over in self.carry_over_list])
+            txt += "\n　　-" + '\n　　-'.join([str(carry_over) for carry_over in self.carry_over_list])
         return txt
 
     def from_dict(self, dict) -> None:

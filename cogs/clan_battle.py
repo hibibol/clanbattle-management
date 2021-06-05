@@ -18,7 +18,7 @@ from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.operation_type import OperationType
-from cogs.cbutil.player_data import PlayerData
+from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage, select_from_list
@@ -302,6 +302,10 @@ class ClanBattle(commands.Cog):
             del attack_status.player_data.carry_over_list[carry_over_index]
         else:
             attack_status.update_attack_log()
+            carry_over = CarryOver(attack_status.attack_type, boss_index)
+            if len(attack_status.player_data.carry_over_list) < 3:
+                attack_status.player_data.carry_over_list.append(carry_over)
+                SQLiteUtil.register_carryover_data(clan_data, attack_status.player_data, carry_over)
         clan_data.boss_status_data[boss_index].beated = True
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
         SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
@@ -418,6 +422,7 @@ class ClanBattle(commands.Cog):
         for player_data in clan_data.player_data_dict.values():
             player_data.initialize_attack()
             SQLiteUtil.update_playerdata(clan_data, player_data)
+            SQLiteUtil.delete_all_carryover_data(clan_data, player_data)
         clan_data.reserve_list = [
             [], [], [], [], []
         ]
