@@ -49,6 +49,7 @@ create table AttackStatus (
     memo varchar,
     attacked boolean,
     attack_type varchar,
+    carry_over boolean,
     created datetime
 );
 

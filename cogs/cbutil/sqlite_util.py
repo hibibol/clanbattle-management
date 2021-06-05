@@ -96,6 +96,7 @@ REGISTER_ATTACKSTATUS_SQL = """insert into AttackStatus values (
     :memo,
     :attacked,
     :attack_type,
+    :carry_over,
     :created
 )"""
 UPDATE_ATTACKSTATUS_SQL = """update AttackStatus
@@ -273,7 +274,6 @@ class SQLiteUtil():
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(UPDATE_RESERVEDATA_SQL, (
-            reserve_data.reserve_type,
             reserve_data.damage,
             reserve_data.memo,
             clan_data.category_id,
@@ -319,6 +319,7 @@ class SQLiteUtil():
             attack_status.memo,
             attack_status.attacked,
             attack_status.attack_type.value,
+            attack_status.carry_over,
             attack_status.created,
         ))
         con.commit()
@@ -417,7 +418,7 @@ class SQLiteUtil():
             clan_data.category_id,
             player_data.user_id,
             carryover.boss_index,
-            carryover.attack_type,
+            carryover.attack_type.value,
             carryover.carry_over_time,
             carryover.created,
         ))
@@ -462,10 +463,10 @@ class SQLiteUtil():
             clan_data.category_id,
             player_data.user_id,
             carryover.boss_index,
-            carryover.attack_type,
+            carryover.attack_type.value,
             carryover.carry_over_time,
             carryover.created
-        ) for carryover in player_data.carry_over]
+        ) for carryover in player_data.carry_over_list]
         cur.executemany(REGISTER_CLANDATA_SQL, records)
         con.commit()
         con.close()
@@ -506,9 +507,9 @@ class SQLiteUtil():
             player_data = clan_data.player_data_dict[row[2]]
             reserve_data = ReserveData(
                 player_data, ATTACK_TYPE_DICT[row[3]],
-                (RESERVE_TYPE_DICT[row[4]], row[5], row[6], row[7])
             )
-            clan_data.reserve_dict[row[1]].append(reserve_data)
+            reserve_data.set_reserve_info((row[4], row[5], row[6]))
+            clan_data.reserve_list[row[1]].append(reserve_data)
 
         for row in cur.execute("select * from BossStatusData"):
             clan_data = clan_data_dict[row[0]]
@@ -526,22 +527,23 @@ class SQLiteUtil():
             boss_status_data = clan_data.boss_status_data[row[2]]
             attack_status = AttackStatus(
                 player_data,
-                ATTACK_TYPE_DICT[row[6]]
+                ATTACK_TYPE_DICT[row[6]],
+                row[7]
             )
             attack_status.damage = row[3]
             attack_status.memo = row[4]
             attack_status.attacked = row[5]
-            attack_status.created = row[6]
-            clan_data.boss_status_data[row[2]].attack_players.append(attack_status)
+            attack_status.created = row[8]
+            boss_status_data.attack_players.append(attack_status)
 
-        for row in cur.execute("select * from CarrtOver"):
+        for row in cur.execute("select * from CarryOver"):
             clan_data = clan_data_dict[row[0]]
             if not clan_data:
                 continue
             player_data = clan_data.player_data_dict[row[1]]
-            carryover = CarryOver(row[3], row[2])
+            carryover = CarryOver(ATTACK_TYPE_DICT[row[3]], row[2])
             carryover.carry_over_time = row[4]
             carryover.created = row[5]
-            player_data.carry_over_list.append
+            player_data.carry_over_list.append(carryover)
         con.close()
         return clan_data_dict
