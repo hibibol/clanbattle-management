@@ -28,7 +28,7 @@ create table PlayerData (
     category_id int,
     user_id int,
     physics_attack int default 0,
-    magic_attack int default 0,
+    magic_attack int default 0
 );
 
 create table ReserveData (
