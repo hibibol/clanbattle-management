@@ -326,6 +326,16 @@ class ClanBattle(commands.Cog):
         remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
         clan_data.remain_attack_message_id = remain_attack_message.id
 
+    def initialize_clandata(self, clan_data: ClanData) -> None:
+        """クランの凸状況を初期化する"""
+        for player_data in clan_data.player_data_dict.values():
+            player_data.initialize_attack()
+            SQLiteUtil.update_playerdata(clan_data, player_data)
+        clan_data.reserve_dict = [
+            [], [], [], [], []
+        ]
+        SQLiteUtil.delete_all_reservedata(clan_data)
+
     async def _get_reserve_info(
         self, clan_data: ClanData, player_data: PlayerData, user: discord.User
     ) -> Optional[Tuple[int, str, bool]]:
@@ -413,6 +423,8 @@ class ClanBattle(commands.Cog):
         if clan_data.date != today:
             clan_data.date = today
 
+            self.initialize_clandata(clan_data)
+            await self._initialize_progress_messages(clan_data)
             await self._initialize_reserve_message(clan_data)
             await self._initialize_remain_attack_message(clan_data)
             SQLiteUtil.update_clandata(clan_data)
