@@ -13,7 +13,7 @@ from discord_slash.context import SlashContext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from cogs.cbutil.attack_type import ATTACK_TYPE_DICT
+from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, AttackType
 from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.clan_data import ClanData
@@ -21,7 +21,7 @@ from cogs.cbutil.operation_type import OperationType
 from cogs.cbutil.player_data import PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
-from cogs.cbutil.util import get_damage
+from cogs.cbutil.util import get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO,
                      EMOJI_PHYSICS, EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
@@ -253,23 +253,53 @@ class ClanBattle(commands.Cog):
         progress_embed = self._create_progress_message(clan_data, boss_idx, channel.guild)
         await progress_message.edit(embed=progress_embed)
 
-    async def _attack_boss(self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int) -> None:
+    async def _attack_boss(
+        self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
+    ) -> None:
         """ボスに凸したときに実行する"""
         attack_status.attacked = True
-        attack_status.player_data.carry_over = False
-        attack_status.update_attack_log()
+        if attack_status.attack_type is AttackType.CARRYOVER:
+            carry_over_index = 0
+            if len(attack_status.player_data.carry_over_list) > 1:
+                try:
+                    carry_over_index = await select_from_list(
+                        self.bot,
+                        channel,
+                        user,
+                        attack_status.player_data.carry_over_list,
+                        f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
+                    )
+                except TimeoutError:
+                    return
+            del attack_status.player_data.carry_over_list[carry_over_index]
+        else:
+            attack_status.update_attack_log()
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+        SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
         await self._update_progress_message(clan_data, boss_index)
         await self._update_remain_attack_message(clan_data)
     
-    async def _last_attack_boss(self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int) -> None:
+    async def _last_attack_boss(
+        self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
+    ) -> None:
         """ボスを討伐した際に実行する"""
         attack_status.attacked = True
-        if attack_status.player_data.carry_over:
-            attack_status.player_data.carry_over = False
-            attack_status.update_attack_log()
+        if attack_status.attack_type is AttackType.CARRYOVER:
+            carry_over_index = 0
+            if len(attack_status.player_data.carry_over_list) > 1:
+                try:
+                    carry_over_index = await select_from_list(
+                        self.bot,
+                        channel,
+                        user,
+                        attack_status.player_data.carry_over_list,
+                        f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
+                    )
+                except TimeoutError:
+                    return
+            del attack_status.player_data.carry_over_list[carry_over_index]
         else:
-            attack_status.player_data.carry_over = True
+            attack_status.update_attack_log()
         clan_data.boss_status_data[boss_index].beated = True
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
         SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
@@ -277,6 +307,9 @@ class ClanBattle(commands.Cog):
 
         # この周のボスがすべて倒された場合は次週に進む
         if all(clan_data.boss_status_data[i].beated for i in range(5)):
+            # ログを全削除。戻せる仕様は考えるのが大変なので後回し
+            for player_data in clan_data.player_data_dict.values():
+                player_data.log = []
             clan_data.lap += 1
             await self._initialize_progress_messages(clan_data)
         SQLiteUtil.update_clandata(clan_data)
@@ -338,7 +371,7 @@ class ClanBattle(commands.Cog):
             txt = player_data.create_txt(user.display_name)
             sum_attack = player_data.magic_attack + player_data.physics_attack
             sum_remain_attack += 3 - sum_attack
-            if player_data.carry_over:
+            if player_data.carry_over_list:
                 remain_attack_co.append(txt)
             else:
                 remain_attack_message_list[sum_attack].append(txt)
@@ -352,7 +385,7 @@ class ClanBattle(commands.Cog):
         content = "\n".join(remain_attack_co)
         if content:
             embed.add_field(
-                name="持ち越し",
+                name="持ち越し所持者",
                 value=content
             )
         embed.set_footer(
@@ -505,19 +538,21 @@ class ClanBattle(commands.Cog):
         if attack_type:
             await self._check_date_update(clan_data)
             if reserve_flag:
-                    reserve_data = ReserveData(
+                reserve_data = ReserveData(
                     player_data, attack_type
-                    )
+                )
                 clan_data.reserve_list[boss_index].append(reserve_data)
-                    await self._update_reserve_message(clan_data, boss_index)
-                    SQLiteUtil.register_reservedata(clan_data, boss_index, reserve_data)
+                await self._update_reserve_message(clan_data, boss_index)
+                SQLiteUtil.register_reservedata(clan_data, boss_index, reserve_data)
             else:
                 # 既に凸宣言済みだったら実行しない
                 declaring_flag = False
                 for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                     if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                         declaring_flag = True
-                if not declaring_flag:
+
+                if not declaring_flag\
+                   or (attack_type is AttackType.CARRYOVER and not player_data.carry_over_list):  # 持ち越し未所持で持ち越しでの凸は反応しない
                     attack_status = AttackStatus(
                         player_data, attack_type
                     )
@@ -533,7 +568,6 @@ class ClanBattle(commands.Cog):
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.ATTACK, boss_index, player_data.__dict__))
                     await self._attack_boss(attack_status, clan_data, boss_index)
-                    SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
