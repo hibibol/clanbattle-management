@@ -38,7 +38,6 @@ create table ReserveData (
     boss_index int,
     user_id int,
     attack_type varchar,
-    reserve_type varchar,
     damage int,
     memo varchar,
     carry_over boolean

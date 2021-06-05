@@ -78,18 +78,17 @@ REGISTER_RESERVEDATA_SQL = """insert into ReserveData values (
     :boss_index,
     :user_id,
     :attack_type,
-    :reserve_type,
     :damage,
     :memo,
     :carry_over
 )"""
 UPDATE_RESERVEDATA_SQL = """update ReserveData
     set
-        reserve_type=?
-        damage=?
-        memo=?
+        damage=?,
+        memo=?,
+        carry_over=?
     where
-        category_id=? and boss_index=? and user_id=? and attack_type=? and carry_over=?"""
+        category_id=? and boss_index=? and user_id=? and attack_type=?"""
 DELETE_RESERVEDATA_SQL = """delete from ReserveData
 where
     category_id=? and boss_index=? and user_id=? and attack_type=? and carry_over=?"""
@@ -248,7 +247,6 @@ class SQLiteUtil():
             boss_index,
             reserve_data.player_data.user_id,
             reserve_data.attack_type.value,
-            reserve_data.reserve_type,
             reserve_data.damage,
             reserve_data.memo,
             reserve_data.carry_over,

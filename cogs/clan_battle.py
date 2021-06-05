@@ -326,36 +326,36 @@ class ClanBattle(commands.Cog):
         await remain_attack_message.edit(embed=remain_attack_embed)
 
     async def _get_reserve_info(
-        self, clan_data: ClanData, player_data: PlayerData, user: discord.User, reserve_target: str
-    ) -> Optional[Tuple[ReserveType, int, str, bool]]:
+        self, clan_data: ClanData, player_data: PlayerData, user: discord.User
+    ) -> Optional[Tuple[int, str, bool]]:
         """予約用のリアクションが押されたときに予約に必要な情報を取得する"""
-        setting_content_reserve_type = f"{user.mention} {reserve_target}の予約が申し込まれました\n"\
-            + f"このボスしか行けない場合 → {EMOJI_ONLY} \n"\
-            + f"他のボスも行ける場合 → {EMOJI_ANY}\n"\
-            + f"予約をキャンセルする場合 → {EMOJI_CANCEL}\n"\
-            + "を押してください"
+        # setting_content_reserve_type = f"{user.mention} {reserve_target}の予約が申し込まれました\n"\
+        #     + f"このボスしか行けない場合 → {EMOJI_ONLY} \n"\
+        #     + f"他のボスも行ける場合 → {EMOJI_ANY}\n"\
+        #     + f"予約をキャンセルする場合 → {EMOJI_CANCEL}\n"\
+        #     + "を押してください"
         setting_content_damage = f"{user.mention} 想定ダメージを送信してください\nスペース後にコメントを付けられます (例: `600 60s討伐`)"
         setting_content_co = f"{user.mention} 持ち越しの予約ですか？"
         setting_message_cancel = f"{user.mention} 予約をキャンセルしました"
         setting_content_fin = "予約を受け付けました"
         command_channnel = await self.bot.get_channel(clan_data.command_channel_id)
 
-        setting_reserve_type_message = await command_channnel.send(content=setting_content_reserve_type)
-        await setting_reserve_type_message.add_reaction(EMOJI_ONLY)
-        await setting_reserve_type_message.add_reaction(EMOJI_ANY)
-        await setting_reserve_type_message.add_reaction(EMOJI_CANCEL)
+        # setting_reserve_type_message = await command_channnel.send(content=setting_content_reserve_type)
+        # await setting_reserve_type_message.add_reaction(EMOJI_ONLY)
+        # await setting_reserve_type_message.add_reaction(EMOJI_ANY)
+        # await setting_reserve_type_message.add_reaction(EMOJI_CANCEL)
 
-        try:
-            reaction_reserve_type, user = await self.bot.wait_for(
-                'reaction_add', timeout=60.0, check=lambda _, reaction_user: reaction_user == user)
-        except asyncio.TimeoutError:
-            await command_channnel.send(setting_message_cancel)
-            return None
+        # try:
+        #     reaction_reserve_type, user = await self.bot.wait_for(
+        #         'reaction_add', timeout=60.0, check=lambda _, reaction_user: reaction_user == user)
+        # except asyncio.TimeoutError:
+        #     await command_channnel.send(setting_message_cancel)
+        #     return None
 
-        reserve_type = RESERVE_TYPE_DICT.get(str(reaction_reserve_type.emoji))
-        if reserve_type is None:
-            await command_channnel.send(setting_message_cancel)
-            return None
+        # reserve_type = RESERVE_TYPE_DICT.get(str(reaction_reserve_type.emoji))
+        # if reserve_type is None:
+        #     await command_channnel.send(setting_message_cancel)
+        #     return None
 
         await command_channnel.send(content=setting_content_damage)
 
@@ -390,7 +390,7 @@ class ClanBattle(commands.Cog):
         else:
             carry_over = False
         await command_channnel.send(content=setting_content_fin)
-        return reserve_type, damage, memo, carry_over
+        return damage, memo, carry_over
 
     # async def _initialize_clanbattle_management(self, clan_data: ClanData):
     #     """クラバトの凸管理の初期化を実施する"""
@@ -487,11 +487,8 @@ class ClanBattle(commands.Cog):
         if attack_type:
             await self._check_date_update(clan_data)
             if reserve_flag:
-                reserve_target = f"{boss_index+1}ボス{attack_type.value}"
-                reserve_info = await self._get_reserve_info(clan_data, player_data, user, reserve_target)
-                if reserve_info:
                     reserve_data = ReserveData(
-                        player_data, attack_type, reserve_info
+                    player_data, attack_type
                     )
                     clan_data.reserve_dict[boss_index].append(reserve_data)
                     await self._update_reserve_message(clan_data, boss_index)
@@ -537,6 +534,17 @@ class ClanBattle(commands.Cog):
             if reserve_index != -1:
                 del clan_data.reserve_dict[boss_index][reserve_index]
                 await self._update_reserve_message(clan_data, boss_index)
+            return await remove_reaction()
+
+        elif str(payload.emoji) == EMOJI_SETTING and reserve_flag:
+            reserve_index = -1
+            for i, reserve_data in enumerate(clan_data.reserve_dict[boss_index][::-1]):
+                if reserve_data.player_data.user_id == payload.user_id:
+                    reserve_index = len(clan_data.reserve_dict[boss_index]) - i - 1
+                    reserve_info = await self._get_reserve_info(clan_data, player_data, user)
+                    reserve_data.set_reserve_info(reserve_info)
+                    await self._update_reserve_message(clan_data, boss_index)
+                    SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_REVERSE:

@@ -13,23 +13,30 @@ class ReserveType(Enum):
 
 class ReserveData():
     def __init__(
-        self, player_data: PlayerData, attack_type: AttackType, reserve_info: Tuple[ReserveType, int, str, bool]
+        self, player_data: PlayerData, attack_type: AttackType
     ) -> None:
         self.attack_type: AttackType = attack_type
         self.player_data: PlayerData = player_data
-        self.reserve_type: ReserveType = reserve_info[0]
-        self.damage: int = reserve_info[1]
-        self.memo: str = reserve_info[2]
-        self.carry_over: bool = reserve_info[3]
+        # self.reserve_type: ReserveType = reserve_info[0]
+        self.damage: int = -1
+        self.memo: str = ""
+        self.carry_over: bool = False
 
     def create_reserve_txt(self, display_name: str) -> str:
         """予約状況を表示するためのテキストを作成する"""
 
-        txt = self.reserve_type.value + self.attack_type.value
-        txt += f" {display_name} {'{:,}'.format(self.damage)}万 {self.memo}"\
-            + "持ち越し" * self.carry_over
+        # txt = self.reserve_type.value + self.attack_type.value
+        txt = f"{self.attack_type.value} {display_name}"
+        if self.damage != -1:
+            txt += f" {'{:,}'.format(self.damage)}万 {self.memo} "\
+                + "持ち越し" * self.carry_over
         
         return txt
+
+    def set_reserve_info(self, reserve_info: Tuple[int, str, bool]) -> None:
+        self.damage: int = reserve_info[0]
+        self.memo: str = reserve_info[1]
+        self.carry_over: bool = reserve_info[2]
 
 
 RESERVE_TYPE_DICT = {

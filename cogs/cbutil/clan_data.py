@@ -26,7 +26,7 @@ class ClanData():
 
         self.player_data_dict: Dict[int, PlayerData] = {}
         self.lap: int = 1
-        self.reserve_dict: List[List[ReserveData], List[ReserveData], List[ReserveData], List[ReserveData], List[ReserveData]] = [
+        self.reserve_list: List[List[ReserveData]] = [
             [], [], [], [], []
         ]
 
