@@ -556,7 +556,7 @@ class ClanBattle(commands.Cog):
                 if not declaring_flag\
                    or (attack_type is AttackType.CARRYOVER and not player_data.carry_over_list):  # 持ち越し未所持で持ち越しでの凸は反応しない
                     attack_status = AttackStatus(
-                        player_data, attack_type
+                        player_data, attack_type, attack_type is AttackType.CARRYOVER
                     )
                     clan_data.boss_status_data[boss_index].attack_players.append(attack_status)
                     await self._update_progress_message(clan_data, boss_index)
@@ -569,7 +569,7 @@ class ClanBattle(commands.Cog):
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.ATTACK, boss_index, player_data.__dict__))
-                    await self._attack_boss(attack_status, clan_data, boss_index)
+                    await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
@@ -577,7 +577,7 @@ class ClanBattle(commands.Cog):
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.__dict__))
-                    await self._last_attack_boss(attack_status, clan_data, boss_index)
+                    await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)
                     SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
             return await remove_reaction()
         # 押した人が一番最後に登録した予約を削除する
