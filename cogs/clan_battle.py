@@ -470,7 +470,6 @@ class ClanBattle(commands.Cog):
             clan_data.date = today
 
             self.initialize_clandata(clan_data)
-            await self._initialize_progress_messages(clan_data)
             await self._initialize_reserve_message(clan_data)
             await self._initialize_remain_attack_message(clan_data)
             SQLiteUtil.update_clandata(clan_data)
