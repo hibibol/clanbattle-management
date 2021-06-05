@@ -154,7 +154,8 @@ class ClanBattle(commands.Cog):
         guild_ids=GUILD_IDS
     )
     async def reset(self, ctx: SlashContext):
-        """周回数を設定する"""
+        """凸管理の初期化を実施する"""
+        await ctx.send(content="凸管理の初期化を実施します。")
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
