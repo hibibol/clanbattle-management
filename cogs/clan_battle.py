@@ -387,35 +387,12 @@ class ClanBattle(commands.Cog):
     async def _get_reserve_info(
         self, clan_data: ClanData, player_data: PlayerData, user: discord.User
     ) -> Optional[Tuple[int, str, bool]]:
-        """予約用のリアクションが押されたときに予約に必要な情報を取得する"""
-        # setting_content_reserve_type = f"{user.mention} {reserve_target}の予約が申し込まれました\n"\
-        #     + f"このボスしか行けない場合 → {EMOJI_ONLY} \n"\
-        #     + f"他のボスも行ける場合 → {EMOJI_ANY}\n"\
-        #     + f"予約をキャンセルする場合 → {EMOJI_CANCEL}\n"\
-        #     + "を押してください"
+        """ユーザーから予約に関する情報を取得する"""
         setting_content_damage = f"{user.mention} 想定ダメージを送信してください\nスペース後にコメントを付けられます (例: `600 60s討伐`)"
         setting_content_co = f"{user.mention} 持ち越しの予約ですか？"
         setting_message_cancel = f"{user.mention} 予約をキャンセルしました"
         setting_content_fin = "予約を受け付けました"
         command_channnel = await self.bot.get_channel(clan_data.command_channel_id)
-
-        # setting_reserve_type_message = await command_channnel.send(content=setting_content_reserve_type)
-        # await setting_reserve_type_message.add_reaction(EMOJI_ONLY)
-        # await setting_reserve_type_message.add_reaction(EMOJI_ANY)
-        # await setting_reserve_type_message.add_reaction(EMOJI_CANCEL)
-
-        # try:
-        #     reaction_reserve_type, user = await self.bot.wait_for(
-        #         'reaction_add', timeout=60.0, check=lambda _, reaction_user: reaction_user == user)
-        # except asyncio.TimeoutError:
-        #     await command_channnel.send(setting_message_cancel)
-        #     return None
-
-        # reserve_type = RESERVE_TYPE_DICT.get(str(reaction_reserve_type.emoji))
-        # if reserve_type is None:
-        #     await command_channnel.send(setting_message_cancel)
-        #     return None
-
         await command_channnel.send(content=setting_content_damage)
 
         try:
