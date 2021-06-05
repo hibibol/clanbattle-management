@@ -11,5 +11,6 @@ class AttackType(Enum):
 
 ATTACK_TYPE_DICT = {
     EMOJI_PHYSICS: AttackType.PHYSICS,
-    EMOJI_MAGIC: AttackType.MAGIC
+    EMOJI_MAGIC: AttackType.MAGIC,
+    EMOJI_CARRYOVER: AttackType.CARRYOVER
 }
