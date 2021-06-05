@@ -450,20 +450,6 @@ class ClanBattle(commands.Cog):
         await command_channnel.send(content=setting_content_fin)
         return damage, memo, carry_over
 
-    # async def _initialize_clanbattle_management(self, clan_data: ClanData):
-    #     """クラバトの凸管理の初期化を実施する"""
-    #     # 残凸管理の初期化
-    #     for player_data in clan_data.player_data_dict.values():
-    #         player_data.initialize_attack()
-    #         SQLiteUtil.update_playerdata(clan_data, player_data)
-    #     await self._initialize_progress_messages(clan_data)
-    #     await self._initialize_reserve_message(clan_data)
-
-    #     remain_attack_embed = self._create_remain_attaack_message(clan_data)
-    #     remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
-    #     remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
-    #     clan_data.remain_attack_message_id = remain_attack_message.id
-
     async def _check_date_update(self, clan_data: ClanData):
         """日付が更新されているかどうかをチェックする"""
         today = (datetime.now(JST) - timedelta(hours=5)).date()
