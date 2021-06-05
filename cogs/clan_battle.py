@@ -22,7 +22,7 @@ from cogs.cbutil.player_data import PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage
-from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL,
+from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO,
                      EMOJI_PHYSICS, EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
 
@@ -240,6 +240,7 @@ class ClanBattle(commands.Cog):
 
             await progress_message.add_reaction(EMOJI_PHYSICS)
             await progress_message.add_reaction(EMOJI_MAGIC)
+            await progress_message.add_reaction(EMOJI_CARRYOVER)
             await progress_message.add_reaction(EMOJI_ATTACK)
             await progress_message.add_reaction(EMOJI_LAST_ATTACK)
             await progress_message.add_reaction(EMOJI_REVERSE)
@@ -574,6 +575,7 @@ class ClanBattle(commands.Cog):
                     reserve_index = len(clan_data.reserve_dict[boss_index]) - i - 1
                     break
             if reserve_index != -1:
+                SQLiteUtil.delete_reservedata(clan_data, boss_index, clan_data.reserve_dict[boss_index][reserve_index])
                 del clan_data.reserve_dict[boss_index][reserve_index]
                 await self._update_reserve_message(clan_data, boss_index)
             return await remove_reaction()

@@ -7,6 +7,7 @@ TOKEN = ""
 
 EMOJI_PHYSICS = "⚔️"
 EMOJI_MAGIC = "🧙"
+EMOJI_CARRYOVER = "☕"
 EMOJI_ONLY = "🚫"
 EMOJI_ANY = "⚠️"
 EMOJI_SETTING = "📝"

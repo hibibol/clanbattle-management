@@ -29,8 +29,6 @@ create table PlayerData (
     user_id int,
     physics_attack int default 0,
     magic_attack int default 0,
-    carry_over boolean default 'FALSE',
-    carry_over_time int default 0
 );
 
 create table ReserveData (
@@ -59,6 +57,15 @@ create table BossStatusData (
     boss_index int,
     lap int,
     beated boolean
+);
+
+create table CarryOver (
+    category_id int,
+    user_id int,
+    boss_index int,
+    attack_type varchar,
+    carry_over_time int,
+    created datetime
 );
 
 -- insert into BossStatusData values (

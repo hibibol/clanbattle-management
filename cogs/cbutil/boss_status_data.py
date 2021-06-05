@@ -4,7 +4,7 @@ from typing import List
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.player_data import PlayerData
-from setting import EMOJI_MAGIC, EMOJI_PHYSICS
+from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
 
 
 class BossStatusData():
@@ -16,13 +16,14 @@ class BossStatusData():
 
 
 class AttackStatus():
-    def __init__(self, player_data: PlayerData, attack_type: AttackType) -> None:
+    def __init__(self, player_data: PlayerData, attack_type: AttackType, carry_over: bool) -> None:
         self.player_data: PlayerData = player_data
         self.damage: int = 0
         self.memo: str = ""
         self.attacked: bool = False
         self.attack_type: AttackType = attack_type
-        self.created: datetime = datetime.now()
+        self.carry_over = carry_over
+        self.created: datetime = datetime.now(JST)
     
     def create_attack_status_txt(self, display_name: str) -> str:
         """凸状況を表示するためのテキストを作成する
@@ -34,8 +35,7 @@ class AttackStatus():
         txt += f" {display_name} {'{:,}'.format(self.damage)}万 {self.memo} "\
             + f"{self.player_data.physics_attack+self.player_data.magic_attack}/3"\
             + f"({EMOJI_PHYSICS}{self.player_data.physics_attack}{EMOJI_MAGIC}{self.player_data.magic_attack})"\
-            + "持ち越し" * self.player_data.carry_over
-        
+            + "持ち越し" * self.carry_over
         return txt
 
     def update_attack_log(self) -> None:

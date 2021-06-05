@@ -1,7 +1,16 @@
-from typing import Dict, List, Tuple
+from datetime import datetime
+from cogs.cbutil.attack_type import AttackType
+from typing import List
 
-from cogs.cbutil.operation_type import OperationType
-from setting import EMOJI_MAGIC, EMOJI_PHYSICS
+from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
+
+
+class CarryOver():
+    def __init__(self, attack_type: AttackType, boss_index: int) -> None:
+        self.attack_type = attack_type
+        self.boss_index = boss_index
+        self.carry_over_time = -1
+        self.created = datetime.now(JST)
 
 
 class PlayerData():
@@ -9,16 +18,13 @@ class PlayerData():
         self.user_id: int = user_id
         self.physics_attack: int = 0
         self.magic_attack: int = 0
-        self.carry_over: bool = False
-        self.carry_over_time: int = 0
-        self.log: List[Tuple[OperationType, int, Dict]] = []
+        # self.log: List[Tuple[OperationType, int, Dict]] = []
+        self.carry_over_list: List[CarryOver] = []
 
     def initialize_attack(self) -> None:
         """凸の進捗状況の初期化を実施する"""
         self.physics_attack = 0
         self.magic_attack = 0
-        self.carry_over = False
-        self.carry_over_time = 0
 
     def create_txt(self, display_name: str) -> None:
         """残凸表示時のメッセージを作成する"""
@@ -27,5 +33,4 @@ class PlayerData():
     def from_dict(self, dict) -> None:
         self.physics_attack = dict["physics_attack"]
         self.magic_attack = dict["magic_attack"]
-        self.carry_over = dict["carry_over"]
-        self.carry_over_time = dict["carry_over_time"]
+        self.carry_over_list = dict["carry_over_list"]

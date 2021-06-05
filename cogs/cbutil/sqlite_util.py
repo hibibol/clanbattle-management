@@ -5,7 +5,7 @@ from typing import DefaultDict, List, Optional
 from cogs.cbutil.attack_type import ATTACK_TYPE_DICT
 from cogs.cbutil.boss_status_data import AttackStatus, BossStatusData
 from cogs.cbutil.clan_data import ClanData
-from cogs.cbutil.player_data import PlayerData
+from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import RESERVE_TYPE_DICT, ReserveData
 from setting import DB_NAME
 
@@ -57,15 +57,11 @@ REGISTER_PLAYERDATA_SQL = """insert into PlayerData values (
     :user_id,
     0,
     0,
-    'FALSE',
-    0
 )"""
 UPDATE_PLAYERDATA_SQL = """update PlayerData
     set
         physics_attack=?,
         magic_attack=?,
-        carry_over=?,
-        carry_over_time=?
     where
         category_id=? and user_id=?
 """
@@ -135,6 +131,26 @@ UPDATE_BOSS_STATUS_DATA_SQL = """update BossStatusData
 DELETE_BOSS_STATUS_DATA_SQL = """delete from BossStatusData
 where
     category_id=? and boss_index=?"""
+REGISTER_CARRYOVER_DATA_SQL = """insert into CarryOver values (
+    :category_id,
+    :user_id,
+    :boss_index,
+    :attack_type,
+    :carry_over_time,
+    :created
+);"""
+UPDATE_CARRYOVER_DATA_SQL = """update CarryOver
+    set
+        carry_over_time=?
+    where
+        category_id=? and user_id=? and created=?"""
+DELETE_CARRYOVER_DATA_SQL = """delete from CarryOver
+where
+    category_id=? and user_id=? and created=?"""
+DELETE_ALL_CARRYOVER_DATA_SQL = """delete from CarryOver
+where
+    category_id=? and user_id=?"""
+
 class SQLiteUtil():
     con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
 
@@ -219,8 +235,6 @@ class SQLiteUtil():
         cur.execute(UPDATE_PLAYERDATA_SQL, (
             player_data.physics_attack,
             player_data.magic_attack,
-            player_data.carry_over,
-            player_data.carry_over_time,
             clan_data.category_id,
             player_data.user_id,
         ))
@@ -396,6 +410,67 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
+    def register_carryover_data(clan_data: ClanData, player_data: PlayerData, carryover: CarryOver):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(REGISTER_CARRYOVER_DATA_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+            carryover.boss_index,
+            carryover.attack_type,
+            carryover.carry_over_time,
+            carryover.created,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def update_carryover_data(clan_data: ClanData, player_data: PlayerData, carryover: CarryOver):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(UPDATE_CARRYOVER_DATA_SQL, (
+            carryover.carry_over_time,
+            clan_data.category_id,
+            player_data.user_id,
+            carryover.created,
+        ))
+        con.commit()
+        con.close()
+    
+    @staticmethod
+    def delete_carryover_data(clan_data: ClanData, player_data: PlayerData, carryover: CarryOver):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(DELETE_CARRYOVER_DATA_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+            carryover.created,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def reregister_carryover_data(clan_data: ClanData, player_data: PlayerData):
+        """すでに登録してある持ち越しをすべて削除して登録しなおす"""
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(DELETE_ALL_CARRYOVER_DATA_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+        ))
+        records = [(
+            clan_data.category_id,
+            player_data.user_id,
+            carryover.boss_index,
+            carryover.attack_type,
+            carryover.carry_over_time,
+            carryover.created
+        ) for carryover in player_data.carry_over]
+        cur.executemany(REGISTER_CLANDATA_SQL, records)
+        con.commit()
+        con.close()
+
+    @staticmethod
     def load_clandata_dict() -> DefaultDict[int, ClanData]:
         clan_data_dict: DefaultDict[int, Optional[ClanData]] = defaultdict(lambda: None)
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -420,8 +495,6 @@ class SQLiteUtil():
             player_data = PlayerData(row[1])
             player_data.physics_attack = row[2]
             player_data.magic_attack = row[3]
-            player_data.carry_over = bool(row[4])
-            player_data.carry_over_time = row[5]
             clan_data = clan_data_dict[row[0]]
             if clan_data:
                 clan_data.player_data_dict[row[1]] = player_data
@@ -460,5 +533,15 @@ class SQLiteUtil():
             attack_status.attacked = row[5]
             attack_status.created = row[6]
             clan_data.boss_status_data[row[2]].attack_players.append(attack_status)
+
+        for row in cur.execute("select * from CarrtOver"):
+            clan_data = clan_data_dict[row[0]]
+            if not clan_data:
+                continue
+            player_data = clan_data.player_data_dict[row[1]]
+            carryover = CarryOver(row[3], row[2])
+            carryover.carry_over_time = row[4]
+            carryover.created = row[5]
+            player_data.carry_over_list.append
         con.close()
         return clan_data_dict
