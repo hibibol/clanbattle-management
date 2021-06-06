@@ -166,6 +166,58 @@ class ClanBattle(commands.Cog):
         await self._initialize_reserve_message(clan_data)
         SQLiteUtil.update_clandata(clan_data)
 
+    @cog_ext.cog_slash(
+        description="ボスに凸した時の処理を実施します",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="boss_number",
+                description="ボス番号",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=True
+            ),
+            create_option(
+                name="member",
+                description="追加したいメンバー",
+                option_type=SlashCommandOptionType.USER,
+                required=True
+            ),
+            create_option(
+                name="damage",
+                description="与えたダメージ",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            )
+        ]
+    )
+    async def fin(self, ctx: SlashContext, boss_number: int, member: discord.User, damage: Optional[int]):
+        """ボスに凸した時の処理を実施する"""
+        await ctx.send(content=f"{member.display_name}の凸を{boss_number+1}ボスに消化します")
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        if not (0 < boss_number < 6):
+            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
+        attack_status_index = -1
+        for i, attack_status in enumerate(clan_data.boss_status_data[boss_number].attack_players):
+            if not attack_status.attacked and attack_status.player_data.user_id == member.id:
+                attack_status_index = i
+                break
+        if attack_status_index == -1:
+            return await ctx.send("凸宣言がされていません。処理を中断します。")
+        attack_status = clan_data.boss_status_data[boss_number].attack_players[attack_status_index]
+        if damage:
+            attack_status.damage = damage
+        self._attack_boss(
+            attack_status,
+            clan_data,
+            boss_number-1,
+            ctx.channel,
+            ctx.author
+        )
+        return ctx.channel.send("処理が完了しました。")
+        
     async def _delete_reserve_by_attack(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
         """ボス攻撃時に予約の削除を行う"""
         reserve_idx = -1
