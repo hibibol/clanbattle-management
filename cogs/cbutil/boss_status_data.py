@@ -32,9 +32,9 @@ class AttackStatus():
         """
 
         txt = self.attack_type.value
-        txt += f" {display_name} {'{:,}'.format(self.damage)}万 {self.memo} "\
-            + f"{self.player_data.physics_attack+self.player_data.magic_attack}/3"\
-            + f"({EMOJI_PHYSICS}{self.player_data.physics_attack}{EMOJI_MAGIC}{self.player_data.magic_attack})"\
+        txt += f"{'{:,}'.format(self.damage)}万 {self.memo} {display_name}  "\
+            + f"({self.player_data.physics_attack+self.player_data.magic_attack}/3"\
+            + f" 物{self.player_data.physics_attack}魔{self.player_data.magic_attack})"\
             + "持ち越し" * self.carry_over
         return txt
 

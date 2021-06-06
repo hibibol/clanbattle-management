@@ -253,13 +253,13 @@ class ClanBattle(commands.Cog):
         """進行用のメッセージを作成する"""
         attacked_list: List[str] = []
         attack_list: List[str] = []
-        clan_data.boss_status_data[boss_index].attack_players.sort(key=lambda x: x.damage)
+        clan_data.boss_status_data[boss_index].attack_players.sort(key=lambda x: x.damage, reverse=True)
         total_damage: int = 0
         current_hp: int = clan_data.boss_status_data[boss_index].max_hp
         for attack_status in clan_data.boss_status_data[boss_index].attack_players:
             user = guild.get_member(attack_status.player_data.user_id)
             if attack_status.attacked:
-                attacked_list.append(f"(凸済み) {user.display_name} {'{:,}'.format(attack_status.damage)}万")
+                attacked_list.append(f"(凸済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}")
                 current_hp -= attack_status.damage
             else:
                 attack_list.append(attack_status.create_attack_status_txt(user.display_name))
