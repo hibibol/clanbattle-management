@@ -31,6 +31,13 @@ logger = getLogger(__name__)
 class ClanBattle(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        asyncio.create_task(update_clanbattledata())
+        # bossデータの読み込みが完了するまで待つ
+        while not ClanBattleData.boss_names:
+            await asyncio.sleep(1)
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
 

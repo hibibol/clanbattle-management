@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple
+import aiohttp
 
 import discord
 
@@ -50,3 +51,9 @@ async def select_from_list(
         and str(reaction.emoji) in reaction_number and reaction_number.index(str(reaction.emoji)) < len(contents)
     )
     return reaction_number.index(str(reaction.emoji))
+
+
+async def get_from_web_api(url: str):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as r:
+            return await r.json()
