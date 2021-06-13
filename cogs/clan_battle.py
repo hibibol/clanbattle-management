@@ -167,13 +167,55 @@ class ClanBattle(commands.Cog):
         SQLiteUtil.update_clandata(clan_data)
 
     @cog_ext.cog_slash(
-        description="ボスに凸した時の処理を実施します",
+        description="ボスに凸宣言した時の処理を実施します",
         guild_ids=GUILD_IDS,
         options=[
             create_option(
+                name="member",
+                description="処理対象のメンバー(メンションで指定)",
+                option_type=SlashCommandOptionType.USER,
+                required=True
+            ),
+            create_option(
+                name="attack_type",
+                description="凸方法を指定します。(物理凸: p, 魔法凸: m, 持ち越し凸: c)",
+                option_type=SlashCommandOptionType.STRING,
+                required=True
+            ),
+            create_option(
                 name="boss_number",
-                description="ボス番号",
+                description="ボス番号 (各ボスの進行用チャンネルで実行する場合は指定する必要がありません)",
                 option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            )
+        ]
+    )
+    async def attack_declare(self, ctx: SlashContext, member: discord.User, attack_type: str, boss_number: Optional[int]):
+        """コマンドで凸宣言を実施した時の処理を行う"""
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        attack_type_v = ATTACK_TYPE_DICT_FOR_COMMAND.get(attack_type)
+        if not attack_type_v:
+            return await ctx.send("凸方法の指定が不適切です。(物理凸: p, 魔法凸: m, 持ち越し凸: c)")
+
+        if not boss_number:
+            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
+            if not boss_index:
+                return await ctx.send("ボス番号を指定してください")
+        elif not (0 < boss_number < 6):
+            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
+        else:
+            boss_index = boss_number - 1
+
+        player_data = clan_data.player_data_dict.get(member.id)
+        if not player_data:
+            return await ctx.send(f"{member.display_name}は凸管理のメンバーに指定されていません。")
+
+        await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{boss_index+1}ボスに宣言します")
+        await self._attack_declare(clan_data, player_data, attack_type_v, boss_index)
+        # await ctx.channel.send("処理が完了しました")
 
     @cog_ext.cog_slash(
         description="ボスに凸した時の処理を実施します。",
