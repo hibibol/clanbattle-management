@@ -17,7 +17,7 @@ from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, AttackType
 from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.clan_data import ClanData
-from cogs.cbutil.operation_type import OperationType
+from cogs.cbutil.operation_type import OPERATION_TYPE_DESCRIPTION_DICT, OperationType
 from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
