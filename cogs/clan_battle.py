@@ -13,7 +13,7 @@ from discord_slash.context import SlashContext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, AttackType
+from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, ATTACK_TYPE_DICT_FOR_COMMAND, AttackType
 from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.clan_data import ClanData
