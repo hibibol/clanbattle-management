@@ -13,18 +13,20 @@ from discord_slash.context import SlashContext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, ATTACK_TYPE_DICT_FOR_COMMAND, AttackType
+from cogs.cbutil.attack_type import (ATTACK_TYPE_DICT,
+                                     ATTACK_TYPE_DICT_FOR_COMMAND, AttackType)
 from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData, update_clanbattledata
 from cogs.cbutil.clan_data import ClanData
-from cogs.cbutil.operation_type import OPERATION_TYPE_DESCRIPTION_DICT, OperationType
+from cogs.cbutil.operation_type import (OPERATION_TYPE_DESCRIPTION_DICT,
+                                        OperationType)
 from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
-                     EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO,
-                     EMOJI_PHYSICS, EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
+                     EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_PHYSICS,
+                     EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
 
 logger = getLogger(__name__)
 
@@ -337,7 +339,7 @@ class ClanBattle(commands.Cog):
                 required=True
             )
         ]
-        )
+    )
     async def undo(self, ctx: SlashContext, member: discord.User):
         """コマンドでもとに戻すときの処理を実施する"""
         clan_data = self.clan_data[ctx.channel.category_id]
@@ -391,7 +393,7 @@ class ClanBattle(commands.Cog):
                 await self._update_progress_message(clan_data, boss_index)
                 await self._update_remain_attack_message(clan_data)
                 SQLiteUtil.update_playerdata(clan_data, player_data)
-        
+
     async def _delete_reserve_by_attack(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
         """ボス攻撃時に予約の削除を行う"""
         reserve_idx = -1
@@ -506,7 +508,7 @@ class ClanBattle(commands.Cog):
         await self._update_progress_message(clan_data, boss_index)
         await self._update_remain_attack_message(clan_data)
         await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
-    
+
     async def _attack_declare(self, clan_data: ClanData, player_data: PlayerData, attack_type: AttackType, boss_index: int):
         attack_status = AttackStatus(
             player_data, attack_type, attack_type is AttackType.CARRYOVER

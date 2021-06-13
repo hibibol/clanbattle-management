@@ -1,9 +1,9 @@
-from cogs.cbutil.clan_battle_data import ClanBattleData
-from cogs.cbutil.operation_type import OperationType
 from datetime import datetime
-from cogs.cbutil.attack_type import AttackType
 from typing import Dict, List, Tuple
 
+from cogs.cbutil.attack_type import AttackType
+from cogs.cbutil.clan_battle_data import ClanBattleData
+from cogs.cbutil.operation_type import OperationType
 from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
 
 

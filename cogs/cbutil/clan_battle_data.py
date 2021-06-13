@@ -1,8 +1,9 @@
 import asyncio
 from datetime import datetime
+from typing import List, Tuple
+
 from cogs.cbutil.util import get_from_web_api
 from setting import BASE_URL, JST
-from typing import List, Tuple
 
 
 class ClanBattleData():

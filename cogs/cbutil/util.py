@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
-import aiohttp
 
+import aiohttp
 import discord
 
 

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from setting import EMOJI_MAGIC, EMOJI_PHYSICS, EMOJI_CARRYOVER
+from setting import EMOJI_CARRYOVER, EMOJI_MAGIC, EMOJI_PHYSICS
 
 
 class AttackType(Enum):
