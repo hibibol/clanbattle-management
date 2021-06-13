@@ -209,6 +209,52 @@ class ClanBattle(commands.Cog):
         attack_status = clan_data.boss_status_data[boss_number].attack_players[attack_status_index]
         if damage:
             attack_status.damage = damage
+    @cog_ext.cog_slash(
+        description="ボスを討伐した時の処理を実施します。",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="member",
+                description="処理対象のメンバー(メンションで指定)",
+                option_type=SlashCommandOptionType.USER,
+                required=True
+            ),
+            create_option(
+                name="boss_number",
+                description="ボス番号 (各ボスの進行用チャンネルで実行する場合は指定する必要がありません)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            )
+        ]
+    )
+    async def defeat_boss(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int]):
+        """コマンドからボスを討伐した時の処理を実施する。"""
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+
+        if not boss_number:
+            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
+            if not boss_index:
+                return await ctx.send("ボス番号を指定してください")
+        elif not (0 < boss_number < 6):
+            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
+        else:
+            boss_index = boss_number - 1
+
+        await ctx.send(content=f"{member.display_name}の凸で{boss_index+1}ボスを討伐します")
+
+        attack_status_index = -1
+        for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
+            if not attack_status.attacked and attack_status.player_data.user_id == member.id:
+                attack_status_index = i
+                break
+        if attack_status_index == -1:
+            return await ctx.send("凸宣言がされていません。処理を中断します。")
+        attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_status_index]
+        await self._last_attack_boss(attack_status, clan_data, boss_index, ctx.channel, ctx.author)
+        # return ctx.channel.send("処理が完了しました。")
 
     @cog_ext.cog_slash(
         description="元に戻す処理を実施します。",
