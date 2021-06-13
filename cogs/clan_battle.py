@@ -216,7 +216,43 @@ class ClanBattle(commands.Cog):
             ctx.channel,
             ctx.author
         )
-        return ctx.channel.send("処理が完了しました。")
+
+    async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_type: OperationType, boss_index: int, log_data: Dict):
+        """元に戻す処理を実施する。"""
+
+        if log_type is OperationType.ATTACK_DECLAR:
+            attack_index = -1
+            for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
+                if attack_status.player_data == player_data and not attack_status.attacked:
+                    attack_index = i
+                    break
+            if attack_index != -1:
+                attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
+                SQLiteUtil.delete_attackstatus(clan_data, boss_index, attack_status)
+                del clan_data.boss_status_data[boss_index].attack_players[attack_index]
+                del player_data.log[-1]
+                await self._update_progress_message(clan_data, boss_index)
+        
+        if log_type is OperationType.ATTACK or log_type is OperationType.LAST_ATTACK:
+            attack_index = -1
+            for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players[::-1]):
+                if attack_status.player_data == player_data and attack_status.attacked:
+                    attack_index = len(clan_data.boss_status_data[boss_index].attack_players) - 1 - i
+                    break
+
+            if attack_index != -1:
+                attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
+                player_data.from_dict(log_data)
+                attack_status.attacked = False
+                SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
+                del player_data.log[-1]
+
+                if OperationType.LAST_ATTACK:
+                    clan_data.boss_status_data[boss_index].beated = False
+                    SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
+                await self._update_progress_message(clan_data, boss_index)
+                await self._update_remain_attack_message(clan_data)
+                SQLiteUtil.update_playerdata(clan_data, player_data)
         
     async def _delete_reserve_by_attack(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
         """ボス攻撃時に予約の削除を行う"""
@@ -674,40 +710,7 @@ class ClanBattle(commands.Cog):
                 channel = self.bot.get_channel(payload.channel_id)
                 await channel.send(txt, delete_after=30)
                 return await remove_reaction()
-
-            if log_type is OperationType.ATTACK_DECLAR:
-                attack_index = -1
-                for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
-                    if attack_status.player_data == player_data and not attack_status.attacked:
-                        attack_index = i
-                        break
-                if attack_index != -1:
-                    attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
-                    SQLiteUtil.delete_attackstatus(clan_data, boss_index, attack_status)
-                    del clan_data.boss_status_data[boss_index].attack_players[attack_index]
-                    del player_data.log[-1]
-                    await self._update_progress_message(clan_data, boss_index)
-            
-            if log_type is OperationType.ATTACK or log_type is OperationType.LAST_ATTACK:
-                attack_index = -1
-                for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players[::-1]):
-                    if attack_status.player_data == player_data and attack_status.attacked:
-                        attack_index = len(clan_data.boss_status_data[boss_index].attack_players) - 1 - i
-                        break
-
-                if attack_index != -1:
-                    attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
-                    player_data.from_dict(log_data)
-                    attack_status.attacked = False
-                    SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
-                    del player_data.log[-1]
-
-                    if OperationType.LAST_ATTACK:
-                        clan_data.boss_status_data[boss_index].beated = False
-                        SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
-                    await self._update_progress_message(clan_data, boss_index)
-                    await self._update_remain_attack_message(clan_data)
-                    SQLiteUtil.update_playerdata(clan_data, player_data)
+            await self._undo(clan_data, player_data, log_type, log_index, log_data)
             return await remove_reaction()
 
 def setup(bot):
