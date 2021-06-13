@@ -209,13 +209,35 @@ class ClanBattle(commands.Cog):
         attack_status = clan_data.boss_status_data[boss_number].attack_players[attack_status_index]
         if damage:
             attack_status.damage = damage
-        self._attack_boss(
-            attack_status,
-            clan_data,
-            boss_number-1,
-            ctx.channel,
-            ctx.author
+
+    @cog_ext.cog_slash(
+        description="元に戻す処理を実施します。",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="member",
+                description="処理対象のメンバー(メンションで指定)",
+                option_type=SlashCommandOptionType.USER,
+                required=True
+            )
+        ]
         )
+    async def undo(self, ctx: SlashContext, member: discord.User):
+        """コマンドでもとに戻すときの処理を実施する"""
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        player_data = clan_data.player_data_dict.get(member.id)
+        if not player_data:
+            return await ctx.send(f"{member.display_name}は凸管理のメンバーに指定されていません。")
+
+        if not player_data.log:
+            return await ctx.send("元に戻す内容がありませんでした")
+        log_type, log_index, log_data = player_data.log[-1]
+
+        await ctx.send(f"{member.display_name}の{log_index+1}ボスに対する`{OPERATION_TYPE_DESCRIPTION_DICT[log_type]}`を元に戻します。")
+        await self._undo(clan_data, player_data, log_type, log_index, log_data)
 
     async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_type: OperationType, boss_index: int, log_data: Dict):
         """元に戻す処理を実施する。"""
