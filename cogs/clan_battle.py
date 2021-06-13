@@ -2,7 +2,7 @@ import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta
 from logging import getLogger
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import discord
 from discord.channel import TextChannel
@@ -15,7 +15,7 @@ from discord_slash.utils.manage_commands import create_option
 
 from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, ATTACK_TYPE_DICT_FOR_COMMAND, AttackType
 from cogs.cbutil.boss_status_data import AttackStatus
-from cogs.cbutil.clan_battle_data import ClanBattleData
+from cogs.cbutil.clan_battle_data import ClanBattleData, update_clanbattledata
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.operation_type import OPERATION_TYPE_DESCRIPTION_DICT, OperationType
 from cogs.cbutil.player_data import CarryOver, PlayerData
@@ -507,6 +507,15 @@ class ClanBattle(commands.Cog):
         await self._update_remain_attack_message(clan_data)
         await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
     
+    async def _attack_declare(self, clan_data: ClanData, player_data: PlayerData, attack_type: AttackType, boss_index: int):
+        attack_status = AttackStatus(
+            player_data, attack_type, attack_type is AttackType.CARRYOVER
+        )
+        clan_data.boss_status_data[boss_index].attack_players.append(attack_status)
+        await self._update_progress_message(clan_data, boss_index)
+        SQLiteUtil.register_attackstatus(clan_data, boss_index, attack_status)
+        player_data.log.append((OperationType.ATTACK_DECLAR, boss_index, {}))
+    
     async def _last_attack_boss(
         self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
     ) -> None:
@@ -786,16 +795,9 @@ class ClanBattle(commands.Cog):
                 for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                     if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                         declaring_flag = True
-
                 if not declaring_flag\
                    or (attack_type is AttackType.CARRYOVER and not player_data.carry_over_list):  # 持ち越し未所持で持ち越しでの凸は反応しない
-                    attack_status = AttackStatus(
-                        player_data, attack_type, attack_type is AttackType.CARRYOVER
-                    )
-                    clan_data.boss_status_data[boss_index].attack_players.append(attack_status)
-                    await self._update_progress_message(clan_data, boss_index)
-                    SQLiteUtil.register_attackstatus(clan_data, boss_index, attack_status)
-                    player_data.log.append((OperationType.ATTACK_DECLAR, boss_index, {}))
+                    await self._attack_declare(clan_data, player_data, attack_type, boss_index)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_ATTACK:
@@ -804,6 +806,7 @@ class ClanBattle(commands.Cog):
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     player_data.log.append((OperationType.ATTACK, boss_index, player_data.__dict__))
                     await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
+                    break
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
@@ -813,6 +816,7 @@ class ClanBattle(commands.Cog):
                     player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.__dict__))
                     await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)
                     SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+                    break
             return await remove_reaction()
         # 押した人が一番最後に登録した予約を削除する
         elif str(payload.emoji) == EMOJI_CANCEL and reserve_flag:
