@@ -1,5 +1,7 @@
+from cogs.cbutil.util import create_limit_time_text
 from datetime import datetime
 from typing import List
+
 
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
@@ -36,6 +38,8 @@ class AttackStatus():
             + f"({self.player_data.physics_attack+self.player_data.magic_attack}/3"\
             + f" 物{self.player_data.physics_attack}魔{self.player_data.magic_attack})"\
             + "持ち越し" * self.carry_over
+        if self.player_data.raw_limit_time_text:
+            txt += " " + create_limit_time_text(self.player_data.raw_limit_time_text)
         return txt
 
     def update_attack_log(self) -> None:

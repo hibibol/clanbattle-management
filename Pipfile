@@ -10,6 +10,8 @@ python_version = "3.9"
 "discord.py" = "*"
 discord-py-slash-command = "*"
 isort = "*"
+gspread-asyncio = "*"
+oauth2client = "*"
 
 [dev-packages]
 flake8 = "*"

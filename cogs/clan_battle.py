@@ -1,4 +1,6 @@
 import asyncio
+from cogs.cbutil.gss import get_sheet_values
+from cogs.cbutil.form_data import create_form_data
 from collections import defaultdict
 from datetime import datetime, timedelta
 from logging import getLogger
@@ -356,6 +358,52 @@ class ClanBattle(commands.Cog):
 
         await ctx.send(f"{member.display_name}の{log_index+1}ボスに対する`{OPERATION_TYPE_DESCRIPTION_DICT[log_type]}`を元に戻します。")
         await self._undo(clan_data, player_data, log_type, log_index, log_data)
+
+    @cog_ext.cog_slash(
+        description="日程調査用のアンケートフォームを表示します。",
+        guild_ids=GUILD_IDS,
+    )
+    async def form(self, ctx: SlashContext):
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        
+        if clan_data.form_data.check_update():
+            await ctx.send(content="アンケートフォームを新規作成しています。")
+            async with ctx.channel.typing():
+                title = ctx.guild.name + f" 日程調査/{datetime.now(JST).month}月"
+                form_data_dict = await create_form_data(title)
+                clan_data.form_data.set_from_form_data_dict(form_data_dict)
+            # ctx.sendが使えなくなるので冗長だけど分ける。
+            form_url = clan_data.form_data.create_form_url(ctx.author.display_name, ctx.author.id)
+            await ctx.channel.send(f"{ctx.author.display_name} さん専用のURLです。\n{form_url}")
+        else:
+            form_url = clan_data.form_data.create_form_url(ctx.author.display_name, ctx.author.id)
+            await ctx.send(f"{ctx.author.display_name} さん専用のURLです。\n{form_url}")
+
+    @cog_ext.cog_slash(
+        description="参戦時間管理用のスプレッドシートを読み込みます。(手動更新用)",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="day",
+                description="何日目のデータを読み込むかを指定する",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=True
+            )
+        ]
+    )
+    async def load_gss(self, ctx: SlashContext, day: int):
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        if day < 0 or day > 5:
+            return await ctx.send(content="1から5までの数字を指定してください")
+        await ctx.send(f"{day}日目のスプレッドシートを読み込みます")
+        await self._load_gss_data(clan_data, day)
+        return await ctx.channel.send("読み込みが完了しました")
 
     async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_type: OperationType, boss_index: int, log_data: Dict):
         """元に戻す処理を実施する。"""
@@ -719,6 +767,20 @@ class ClanBattle(commands.Cog):
             await self._initialize_reserve_message(clan_data)
             await self._initialize_remain_attack_message(clan_data)
             SQLiteUtil.update_clandata(clan_data)
+
+    async def _load_gss_data(self, clan_data: ClanData, day: int):
+        """参戦時間を管理するスプレッドシートを読み込む"""
+        if not clan_data.form_data.sheet_url:
+            return
+
+        sheet_data = await get_sheet_values(
+            clan_data.form_data.sheet_url,
+            "フォームの回答 1"
+        )
+        for row in sheet_data[1:]:
+            player_data = clan_data.player_data_dict.get(int(row[2]))
+            if player_data:
+                player_data.raw_limit_time_text = row[2+day]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

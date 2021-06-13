@@ -143,3 +143,4 @@ setting.py
 *.ipynb
 gas/config.js
 gas/.clasp.json
+jsons

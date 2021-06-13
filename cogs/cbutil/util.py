@@ -1,3 +1,5 @@
+from datetime import datetime
+from setting import JST
 from typing import List, Optional, Tuple
 
 import aiohttp
@@ -57,3 +59,33 @@ async def get_from_web_api(url: str):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as r:
             return await r.json()
+
+
+def create_limit_time_text(raw_limit_time_text: str) -> str:
+    spans = [tuple(map(int, span.replace("時", "").split("～"))) for span in raw_limit_time_text.split(", ")]
+    fix_spans = []
+    min_hour = spans[0][0]
+    max_hour = spans[0][1]
+    for span in spans[1:]:
+        if max_hour == span[0]:
+            max_hour = span[1]
+        else:
+            fix_spans.append((min_hour, max_hour))
+            min_hour = span[0]
+            max_hour = span[1]
+    fix_spans.append((min_hour, max_hour))
+
+    now_hour = datetime.now(JST).hour
+    if now_hour < 5:
+        now_hour += 24
+    time_text_list = []
+
+    for i, span in enumerate(fix_spans):
+        if span[1] < now_hour:
+            if len(fix_spans) - 1 == i:
+                time_text_list.append(f"～{span[1]}時")
+        if span[0] > now_hour:
+            time_text_list.append(f"{span[0]}～{span[1]}時")
+        if span[0] <= now_hour and now_hour < span[1]:
+            time_text_list.append(f"～{span[1]}時")
+    return ", ".join(time_text_list)

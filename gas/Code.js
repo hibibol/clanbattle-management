@@ -1,7 +1,11 @@
 function create_form(title){
   // formを作成する
   var form = FormApp.create(title)
-  form.setDescription("日程調査用のアンケートフォームです。\n各日付の参戦可能時間すべてにチェックを付けてください。")
+  form.setDescription(
+    "日程調査用のアンケートフォームです。\n各日付の参戦可能時間すべてにチェックを付けてください。\n\n"
+    + "'/form' コマンドを使用することでお名前とDiscord Idが自動入力された専用URLが発行されます。\n"
+    + "予定を変更したい場合は、再度アンケートフォームに回答してください。最新のものが反映されます。"
+  );
 
   const folder = DriveApp.getFolderById(folder_ID)
   const form_file = DriveApp.getFileById(form.getId())
@@ -32,7 +36,6 @@ function create_form(title){
   const ss_file = DriveApp.getFileById(ss_id)
   ss_file.moveTo(folder)
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId())
-  const sheet = ss.getSheetByName("Form Responses 1")
 
   // 補完用のentry idを取得する
   var fieldIds = [];
@@ -49,7 +52,6 @@ function create_form(title){
   return {
     form_url: form.getPublishedUrl(),
     ss_url: ss.getUrl(),
-    response_sheet_id: sheet.getSheetId(),
     name_entry: fieldIds[0],
     discord_id_entry: fieldIds[1]
   }

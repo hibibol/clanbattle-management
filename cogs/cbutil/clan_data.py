@@ -1,3 +1,4 @@
+from cogs.cbutil.form_data import FormData
 import datetime
 from typing import Dict, List, Optional
 
@@ -42,6 +43,7 @@ class ClanData():
         self.progress_message_ids: List[int] = [0, 0, 0, 0, 0]
 
         self.date: str = (datetime.datetime.now(JST) - datetime.timedelta(hours=5)).date()
+        self.form_data = FormData()
 
     def initialize_boss_status_data(self):
         self.boss_status_data = list(BossStatusData(self.lap, i) for i in range(5))
