@@ -140,3 +140,6 @@ cython_debug/
 setting.py
 *.db
 .vscode/
+*.ipynb
+gas/config.js
+gas/.clasp.json
