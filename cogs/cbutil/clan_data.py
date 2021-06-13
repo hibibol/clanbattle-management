@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from cogs.cbutil.boss_status_data import BossStatusData
 from cogs.cbutil.player_data import PlayerData
@@ -45,3 +45,9 @@ class ClanData():
 
     def initialize_boss_status_data(self):
         self.boss_status_data = list(BossStatusData(self.lap, i) for i in range(5))
+
+    def get_boss_index_from_channel_id(self, channel_id: int) -> Optional[int]:
+        try:
+            return self.boss_channel_ids.index(channel_id)
+        except ValueError:
+            return None
