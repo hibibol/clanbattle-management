@@ -154,6 +154,23 @@ where
 DELETE_ALL_CARRYOVER_DATA_SQL = """delete from CarryOver
 where
     category_id=? and user_id=?"""
+REGISTER_FORMDATA_SQL = """insert into FormData values (
+    :category_id,
+    :form_url,
+    :sheet_url,
+    :name_entry,
+    :discord_id_entry,
+    :created
+)"""
+UPDATE_FORMDATA_SQL = """update FormData
+    set
+        form_url=?,
+        sheet_url=?,
+        name_entry=?.
+        discord_id_entry=?
+        created=?
+    where
+        category_id=?"""
 
 class SQLiteUtil():
     con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -487,6 +504,35 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
+    def register_form_data(clan_data: ClanData):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(REGISTER_FORMDATA_SQL, (
+            clan_data.category_id,
+            clan_data.form_data.form_url,
+            clan_data.form_data.sheet_url,
+            clan_data.form_data.name_entry,
+            clan_data.form_data.created,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def update_form_data(clan_data: ClanData):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(UPDATE_FORMDATA_SQL, (
+            clan_data.form_data.form_url,
+            clan_data.form_data.sheet_url,
+            clan_data.form_data.name_entry,
+            clan_data.form_data.discord_id_entry,
+            clan_data.form_data.created,
+            clan_data.category_id,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
     def load_clandata_dict() -> DefaultDict[int, ClanData]:
         clan_data_dict: DefaultDict[int, Optional[ClanData]] = defaultdict(lambda: None)
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -555,10 +601,22 @@ class SQLiteUtil():
             clan_data = clan_data_dict[row[0]]
             if not clan_data:
                 continue
-            player_data = clan_data.player_data_dict[row[1]]
+            player_data = clan_data.player_data_dict.get(row[1])
+            if not player_data:
+                continue
             carryover = CarryOver(ATTACK_TYPE_DICT[row[3]], row[2])
             carryover.carry_over_time = row[4]
             carryover.created = row[5]
             player_data.carry_over_list.append(carryover)
+
+        for row in cur.execute("select * from FormData"):
+            clan_data = clan_data_dict[row[0]]
+            if not clan_data:
+                continue
+            clan_data.form_data.form_url = row[1]
+            clan_data.form_data.sheet_url = row[2]
+            clan_data.form_data.name_entry = row[3]
+            clan_data.form_data.discord_id_entry = row[4]
+            clan_data.form_data.created = row[5]
         con.close()
         return clan_data_dict
