@@ -1,4 +1,4 @@
-function create_form(title){
+function create_form(title, start_day){
   // formを作成する
   var form = FormApp.create(title)
   form.setDescription(
@@ -13,10 +13,15 @@ function create_form(title){
 
   var name_item = form.addTextItem().setTitle("お名前").setRequired(true)
   var discord_id_item = form.addTextItem().setTitle("Discord Id").setRequired(true)
+  
+  var date = new Date();
+  const day_of_week_str = [ "日", "月", "火", "水", "木", "金", "土" ];
 
   for (let day=1; day<6; day++){
     var checkbox_item = form.addCheckboxItem()
-    checkbox_item.setTitle(day + "日目")
+    date.setDate(start_day+day-1)
+    item_title = day + "日目: " + date.getDate() + "日" + "（" + day_of_week_str[date.getDay()] + "）"
+    checkbox_item.setTitle(item_title)
     checkbox_item.setRequired(true)
     if (day == 5){
       var max_time = 24
@@ -62,9 +67,10 @@ function doGet(e) {
 
     //リクエストパラメータ名"text"の値を取得する
     var title = e.parameter.title;
+    var start_day = Number(e.parameter.start_day);
     var result;
     if (title) {
-        result = create_form(title)
+        result = create_form(title, start_day)
     } else {
       result = {
         errors: {
