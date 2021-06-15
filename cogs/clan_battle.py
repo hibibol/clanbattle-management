@@ -40,7 +40,7 @@ class ClanBattle(commands.Cog):
     async def on_ready(self):
         asyncio.create_task(update_clanbattledata())
         # bossデータの読み込みが完了するまで待つ
-        while not ClanBattleData.boss_names:
+        while not ClanBattleData.boudaries:
             await asyncio.sleep(1)
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
@@ -171,7 +171,7 @@ class ClanBattle(commands.Cog):
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
-        self.initialize_clandata(clan_data)
+        await self.initialize_clandata(clan_data)
         await self._initialize_progress_messages(clan_data)
         await self._initialize_remain_attack_message(clan_data)
         await self._initialize_reserve_message(clan_data)
@@ -375,15 +375,20 @@ class ClanBattle(commands.Cog):
                 title = ctx.guild.name + f" 日程調査/{datetime.now(JST).month}月"
                 form_data_dict = await create_form_data(title)
                 clan_data.form_data.set_from_form_data_dict(form_data_dict)
+            new_flag = True if len(clan_data.form_data.form_url) == 0 else False
             # ctx.sendが使えなくなるので冗長だけど分ける。
             form_url = clan_data.form_data.create_form_url(ctx.author.display_name, ctx.author.id)
             await ctx.channel.send(f"{ctx.author.display_name} さん専用のURLです。\n{form_url}")
+            if new_flag:
+                SQLiteUtil.register_form_data(clan_data)
+            else:
+                SQLiteUtil.update_form_data(clan_data)
         else:
             form_url = clan_data.form_data.create_form_url(ctx.author.display_name, ctx.author.id)
             await ctx.send(f"{ctx.author.display_name} さん専用のURLです。\n{form_url}")
 
     @cog_ext.cog_slash(
-        description="参戦時間管理用のスプレッドシートを読み込みます。(手動更新用)",
+        description="参戦時間を読み込みます。(手動更新用)",
         guild_ids=GUILD_IDS,
         options=[
             create_option(
@@ -394,16 +399,31 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def load_gss(self, ctx: SlashContext, day: int):
+    async def load_time(self, ctx: SlashContext, day: int):
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
+        if not clan_data.form_data.form_url:
+            return await ctx.send("日程調査用のアンケートフォームが作成されていません。")
         if day < 0 or day > 5:
             return await ctx.send(content="1から5までの数字を指定してください")
-        await ctx.send(f"{day}日目のスプレッドシートを読み込みます")
+        await ctx.send(f"{day}日目の参戦時間を読み込みます")
         await self._load_gss_data(clan_data, day)
         return await ctx.channel.send("読み込みが完了しました")
+
+    @cog_ext.cog_slash(
+        description="日程調査の回答シートを出力します",
+        guild_ids=GUILD_IDS
+    )
+    async def form_sheet(self, ctx: SlashContext):
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        if not clan_data.form_data.form_url:
+            return await ctx.send("日程調査用のアンケートフォームが作成されていません。")
+        return await ctx.send(clan_data.form_data.sheet_url)
 
     async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_type: OperationType, boss_index: int, log_data: Dict):
         """元に戻す処理を実施する。"""
@@ -702,7 +722,7 @@ class ClanBattle(commands.Cog):
         remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
         clan_data.remain_attack_message_id = remain_attack_message.id
 
-    def initialize_clandata(self, clan_data: ClanData) -> None:
+    async def initialize_clandata(self, clan_data: ClanData) -> None:
         """クランの凸状況を初期化する"""
         for player_data in clan_data.player_data_dict.values():
             player_data.initialize_attack()
@@ -712,6 +732,13 @@ class ClanBattle(commands.Cog):
             [], [], [], [], []
         ]
         SQLiteUtil.delete_all_reservedata(clan_data)
+
+        if clan_data.form_data.form_url:
+            now = datetime.now(JST)
+            if ClanBattleData.start_time <= now <= ClanBattleData.end_time:
+                diff = now - ClanBattleData.start_time
+                day = diff.days + 1
+                await self._load_gss_data(clan_data, day)
 
     async def _get_reserve_info(
         self, clan_data: ClanData, player_data: PlayerData, user: discord.User
@@ -763,7 +790,7 @@ class ClanBattle(commands.Cog):
         if clan_data.date != today:
             clan_data.date = today
 
-            self.initialize_clandata(clan_data)
+            await self.initialize_clandata(clan_data)
             await self._initialize_reserve_message(clan_data)
             await self._initialize_remain_attack_message(clan_data)
             SQLiteUtil.update_clandata(clan_data)
