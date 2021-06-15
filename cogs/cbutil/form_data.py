@@ -1,3 +1,4 @@
+from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.util import get_from_web_api
 from datetime import datetime
 from urllib.parse import urlencode
@@ -42,8 +43,15 @@ class FormData():
 
 
 async def create_form_data(title: str):
+    now = datetime.now(JST)
+    if now < ClanBattleData.end_time:
+        start_day = ClanBattleData.start_time.day
+    else:
+        start_day = ClanBattleData.next_start.day
+
     url = CREATE_FORM_API + "?" + urlencode({
-        "title": title
+        "title": title,
+        "start_day": start_day
     })
     form_data: FormData = await get_from_web_api(url)
     return form_data

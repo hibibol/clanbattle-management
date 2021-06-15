@@ -11,6 +11,9 @@ class ClanBattleData():
     hp: List[List[int]] = []
     boudaries: List[Tuple[int]] = []
     icon: List[str] = []
+    start_time: datetime = datetime.now()
+    end_time: datetime = datetime.now()
+    next_start: datetime = datetime.now()
 
     @staticmethod
     def get_hp(lap: int, boss_index: int) -> int:
@@ -20,9 +23,8 @@ class ClanBattleData():
         return ClanBattleData.hp[-1][boss_index]
 
 
-async def get_clan_battle_data() -> Tuple[List[str], List[List[int]], List[Tuple[int]], List[str]]:
+async def get_clan_battle_data() -> None:
     clan_battle_abstract = await get_from_web_api(BASE_URL + "clanbattles/latest")
-    boss_names = clan_battle_abstract["maps"][0]["boss_names"]
     hp_list = []
     boundaries = []
     icons = []
@@ -35,15 +37,17 @@ async def get_clan_battle_data() -> Tuple[List[str], List[List[int]], List[Tuple
                 icons.append(boss_data["unit"]["icon"])
         hp_list.append(hp_list_in_level)
         boundaries.append((map['lap_from'], map['lap_to']))
-    return boss_names, hp_list, boundaries, icons
+    ClanBattleData.boss_names = clan_battle_abstract["maps"][0]["boss_names"]
+    ClanBattleData.hp = hp_list
+    ClanBattleData.boudaries = boundaries
+    ClanBattleData.icon = icons
+    ClanBattleData.start_time = datetime.strptime(clan_battle_abstract["start_time"], '%Y/%m/%d %H:%M:%S').astimezone(JST)
+    ClanBattleData.end_time = datetime.strptime(clan_battle_abstract["end_time"], '%Y/%m/%d %H:%M:%S').astimezone(JST)
+    ClanBattleData.next_start = datetime.strptime(clan_battle_abstract["interval_end"], '%Y/%m/%d %H:%M:%S').astimezone(JST)
 
 
 async def update_clanbattledata():
     while True:
         if datetime.now(JST).strftime('%H:%M') == "04:59" or not ClanBattleData.boss_names:
-            clan_battle_data = await get_clan_battle_data()
-            ClanBattleData.boss_names = clan_battle_data[0]
-            ClanBattleData.hp = clan_battle_data[1]
-            ClanBattleData.boudaries = clan_battle_data[2]
-            ClanBattleData.icon = clan_battle_data[3]
+            await get_clan_battle_data()
         await asyncio.sleep(60)
