@@ -1,9 +1,10 @@
+from datetime import datetime
+from typing import Optional, TypedDict
+from urllib.parse import urlencode
+
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.util import get_from_web_api
-from datetime import datetime
-from urllib.parse import urlencode
 from setting import CREATE_FORM_API, JST
-from typing import Optional, TypedDict
 
 
 class FormDataDict(TypedDict):

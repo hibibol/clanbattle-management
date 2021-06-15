@@ -1,10 +1,10 @@
-from cogs.cbutil.util import create_limit_time_text
 from datetime import datetime
 from typing import Dict, List, Tuple
 
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.operation_type import OperationType
+from cogs.cbutil.util import create_limit_time_text
 from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
 
 

@@ -1,9 +1,10 @@
 from datetime import datetime
-from setting import JST
 from typing import List, Optional, Tuple
 
 import aiohttp
 import discord
+
+from setting import JST
 
 
 def get_damage(damage_message_txt: str) -> Optional[Tuple[int, str]]:

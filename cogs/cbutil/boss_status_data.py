@@ -1,12 +1,11 @@
-from cogs.cbutil.util import create_limit_time_text
 from datetime import datetime
 from typing import List
-
 
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.player_data import PlayerData
-from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
+from cogs.cbutil.util import create_limit_time_text
+from setting import JST
 
 
 class BossStatusData():

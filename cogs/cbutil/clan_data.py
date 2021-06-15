@@ -1,8 +1,8 @@
-from cogs.cbutil.form_data import FormData
 import datetime
 from typing import Dict, List, Optional
 
 from cogs.cbutil.boss_status_data import BossStatusData
+from cogs.cbutil.form_data import FormData
 from cogs.cbutil.player_data import PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from setting import JST
