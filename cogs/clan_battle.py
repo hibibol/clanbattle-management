@@ -90,6 +90,60 @@ class ClanBattle(commands.Cog):
             SQLiteUtil.register_playerdata(clan_data, player_data_list)
 
     @cog_ext.cog_slash(
+        description="凸管理するメンバーを削除します。オプションがない場合、コマンドを実行した人が削除されます。",
+        options=[
+            create_option(
+                name="member",
+                description="削除したいメンバー",
+                option_type=SlashCommandOptionType.USER,
+                required=False
+            ),
+            create_option(
+                name="all",
+                description="全てのメンバーを削除します。",
+                option_type=SlashCommandOptionType.BOOLEAN,
+                required=False
+            )
+        ],
+        guild_ids=GUILD_IDS
+    )
+    async def remove(self, ctx: SlashContext, member: Optional[discord.User], all: Optional[bool]):
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+
+        player_data_list: List[PlayerData] = []
+        if member is None and all is None:
+            if player_data := clan_data.player_data_dict.get(ctx.author.id):
+                player_data_list.append(player_data)
+            else:
+                return await ctx.send(f"{ctx.author.display_name}さんは凸管理対象ではありません。")
+
+        if member:
+            if player_data := clan_data.player_data_dict.get(member.id):
+                player_data_list.append(player_data)
+            else:
+                return await ctx.send(f"{member.display_name}さんは凸管理対象ではありません。")
+
+        if all:
+            player_data_list += list(clan_data.player_data_dict.values())
+
+        await ctx.send(f"{len(player_data_list)}名のデータを削除します。")
+        for player_data in player_data_list:
+            for boss_status_data in clan_data.boss_status_data:
+                boss_status_data.attack_players = [
+                    attack_player for attack_player in boss_status_data.attack_players
+                    if attack_player.player_data.user_id != player_data.user_id]
+
+            for i in range(5):
+                clan_data.reserve_list[i] = [
+                    reserve_data for reserve_data in clan_data.reserve_list[i]
+                    if reserve_data.player_data.user_id != player_data.user_id]
+            SQLiteUtil.delete_playerdata(player_data)
+            del clan_data.player_data_dict[player_data.user_id]
+
+    @cog_ext.cog_slash(
         description="凸管理のセットアップを実施します。",
         options=[
             create_option(

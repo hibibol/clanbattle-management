@@ -72,6 +72,18 @@ DELETE_PLAYERDATA_SQL = """DELETE FROM PlayerData
     where
         category_id=? and user_id=?
 """
+DELETE_PLAYERDATA_FROM_RESERVEDATA_SQL = """DELETE FROM ReserveData
+    where
+        category_id=? and user_id=?
+"""
+DELETE_PLAYERDATA_FROM_ATTACKSTATUS_SQL = """DELETE FROM AttackStatus
+    where
+        category_id=? and user_id=?
+"""
+DELETE_PLAYERDATA_FROM_CARRYOVER_SQL = """DELETE FROM CarryOver
+    where
+        category_id=? and user_id=?
+"""
 REGISTER_RESERVEDATA_SQL = """insert into ReserveData values (
     :category_id,
     :boss_index,
@@ -266,7 +278,20 @@ class SQLiteUtil():
     def delete_playerdata(clan_data: ClanData, player_data: PlayerData):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
+        # 全てのテーブルからplayer dataに関するものを削除する。
         cur.execute(DELETE_PLAYERDATA_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+        ))
+        cur.execute(DELETE_PLAYERDATA_FROM_CARRYOVER_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+        ))
+        cur.execute(DELETE_PLAYERDATA_FROM_ATTACKSTATUS_SQL, (
+            clan_data.category_id,
+            player_data.user_id,
+        ))
+        cur.execute(DELETE_PLAYERDATA_FROM_RESERVEDATA_SQL, (
             clan_data.category_id,
             player_data.user_id,
         ))
