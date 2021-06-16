@@ -404,7 +404,7 @@ class ClanBattle(commands.Cog):
             return
         player_data = clan_data.player_data_dict.get(member.id)
         if not player_data:
-            return await ctx.send(f"{member.display_name}は凸管理のメンバーに指定されていません。")
+            return await ctx.send(f"{member.display_name}さんは凸管理のメンバーに指定されていません。")
 
         if not player_data.log:
             return await ctx.send("元に戻す内容がありませんでした")
@@ -412,6 +412,38 @@ class ClanBattle(commands.Cog):
 
         await ctx.send(f"{member.display_name}の{log_index+1}ボスに対する`{OPERATION_TYPE_DESCRIPTION_DICT[log_type]}`を元に戻します。")
         await self._undo(clan_data, player_data, log_type, log_index, log_data)
+
+    @cog_ext.cog_slash(
+        description="持越時間を登録します。",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="time",
+                description="持越秒数",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=True
+            )
+        ]
+    )
+    async def set_cot(self, ctx: SlashContext, time: int):
+        clan_data = self.clan_data[ctx.channel.category_id]
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+        if player_data := clan_data.player_data_dict.get(ctx.author.id):
+            if not player_data.carry_over_list:
+                return await ctx.send("持ち越しを持っていません。")
+            co_index = 0
+            if len(player_data.carry_over_list) > 1:
+                co_index = await select_from_list(
+                    self.bot, ctx.channel, ctx.author, player_data.carry_over_list,
+                    f"{ctx.author.mention} 持ち越しが二つ以上発生しています。以下から持ち越し時間を登録したい持ち越しを選択してください")
+
+            player_data.carry_over_list[co_index].carry_over_time = time
+            await self._update_remain_attack_message(clan_data)
+            return await ctx.send("持ち越し時間の登録が完了しました")
+        else:
+            return await ctx.send(f"{ctx.author.display_name}さんは凸管理対象ではありません。")
 
     @cog_ext.cog_slash(
         description="日程調査用のアンケートフォームを表示します。",
