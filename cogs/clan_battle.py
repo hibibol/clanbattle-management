@@ -11,7 +11,7 @@ from discord.ext import commands
 from discord_slash import cog_ext
 from discord_slash.context import SlashContext
 from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import create_option
+from discord_slash.utils.manage_commands import create_choice, create_option
 
 from cogs.cbutil.attack_type import (ATTACK_TYPE_DICT,
                                      ATTACK_TYPE_DICT_FOR_COMMAND, AttackType)
@@ -243,9 +243,23 @@ class ClanBattle(commands.Cog):
             ),
             create_option(
                 name="attack_type",
-                description="凸方法を指定します。(物理凸: p, 魔法凸: m, 持ち越し凸: c)",
+                description="凸方法を指定します。",
                 option_type=SlashCommandOptionType.STRING,
-                required=True
+                required=True,
+                choices=[
+                    create_choice(
+                        name=f"{EMOJI_PHYSICS} 物理凸",
+                        value="p",
+                    ),
+                    create_choice(
+                        name=f"{EMOJI_MAGIC} 魔法凸",
+                        value="m"
+                    ),
+                    create_choice(
+                        name=f"{EMOJI_CARRYOVER} 持ち越し凸",
+                        value="c"
+                    )
+                ]
             ),
             create_option(
                 name="boss_number",
@@ -255,15 +269,13 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def attack_declare(self, ctx: SlashContext, member: discord.User, attack_type: str, boss_number: Optional[int]):
+    async def attack_declare(self, ctx: SlashContext, member: discord.User, attack_type: str, boss_number: Optional[int] = None):
         """コマンドで凸宣言を実施した時の処理を行う"""
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
         attack_type_v = ATTACK_TYPE_DICT_FOR_COMMAND.get(attack_type)
-        if not attack_type_v:
-            return await ctx.send("凸方法の指定が不適切です。(物理凸: p, 魔法凸: m, 持ち越し凸: c)")
 
         if not boss_number:
             boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
