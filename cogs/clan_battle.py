@@ -107,7 +107,7 @@ class ClanBattle(commands.Cog):
         ],
         guild_ids=GUILD_IDS
     )
-    async def remove(self, ctx: SlashContext, member: Optional[discord.User], all: Optional[bool]):
+    async def remove(self, ctx: SlashContext, member: Optional[discord.User] = None, all: Optional[bool] = None):
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
@@ -140,8 +140,10 @@ class ClanBattle(commands.Cog):
                 clan_data.reserve_list[i] = [
                     reserve_data for reserve_data in clan_data.reserve_list[i]
                     if reserve_data.player_data.user_id != player_data.user_id]
-            SQLiteUtil.delete_playerdata(player_data)
+            SQLiteUtil.delete_playerdata(clan_data, player_data)
             del clan_data.player_data_dict[player_data.user_id]
+        await self._update_remain_attack_message(clan_data)
+        await ctx.channel.send("削除が完了しました。")
 
     @cog_ext.cog_slash(
         description="凸管理のセットアップを実施します。",
@@ -279,7 +281,7 @@ class ClanBattle(commands.Cog):
 
         if not boss_number:
             boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
-            if not boss_index:
+            if boss_index is None:
                 return await ctx.send("ボス番号を指定してください")
         elif not (0 < boss_number < 6):
             return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
@@ -327,7 +329,7 @@ class ClanBattle(commands.Cog):
 
         if not boss_number:
             boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
-            if not boss_index:
+            if boss_index is None:
                 return await ctx.send("ボス番号を指定してください")
         elif not (0 < boss_number < 6):
             return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
@@ -375,8 +377,8 @@ class ClanBattle(commands.Cog):
             return
 
         if not boss_number:
-            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
-            if not boss_index:
+            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel.id)
+            if boss_index is None:
                 return await ctx.send("ボス番号を指定してください")
         elif not (0 < boss_number < 6):
             return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
@@ -469,11 +471,11 @@ class ClanBattle(commands.Cog):
         
         if clan_data.form_data.check_update():
             await ctx.send(content="アンケートフォームを新規作成しています。")
+            new_flag = True if len(clan_data.form_data.form_url) == 0 else False
             async with ctx.channel.typing():
                 title = ctx.guild.name + f" 日程調査/{datetime.now(JST).month}月"
                 form_data_dict = await create_form_data(title)
                 clan_data.form_data.set_from_form_data_dict(form_data_dict)
-            new_flag = True if len(clan_data.form_data.form_url) == 0 else False
             # ctx.sendが使えなくなるので冗長だけど分ける。
             form_url = clan_data.form_data.create_form_url(ctx.author.display_name, ctx.author.id)
             await ctx.channel.send(f"{ctx.author.display_name} さん専用のURLです。\n{form_url}")
@@ -666,6 +668,7 @@ class ClanBattle(commands.Cog):
                     )
                 except TimeoutError:
                     return
+            SQLiteUtil.delete_carryover_data(clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
             del attack_status.player_data.carry_over_list[carry_over_index]
         else:
             attack_status.update_attack_log()
@@ -702,6 +705,7 @@ class ClanBattle(commands.Cog):
                     )
                 except TimeoutError:
                     return
+            SQLiteUtil.delete_carryover_data(clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
             del attack_status.player_data.carry_over_list[carry_over_index]
         else:
             attack_status.update_attack_log()
