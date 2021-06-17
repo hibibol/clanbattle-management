@@ -7,7 +7,7 @@ from cogs.cbutil.boss_status_data import AttackStatus, BossStatusData
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import ReserveData
-from setting import DB_NAME
+from setting import DB_NAME, JST
 
 sqlite3.dbapi2.converters['DATETIME'] = sqlite3.dbapi2.converters['TIMESTAMP']
 
@@ -178,8 +178,8 @@ UPDATE_FORMDATA_SQL = """update FormData
     set
         form_url=?,
         sheet_url=?,
-        name_entry=?.
-        discord_id_entry=?
+        name_entry=?,
+        discord_id_entry=?,
         created=?
     where
         category_id=?"""
@@ -537,6 +537,7 @@ class SQLiteUtil():
             clan_data.form_data.form_url,
             clan_data.form_data.sheet_url,
             clan_data.form_data.name_entry,
+            clan_data.form_data.discord_id_entry,
             clan_data.form_data.created,
         ))
         con.commit()
@@ -619,7 +620,7 @@ class SQLiteUtil():
             attack_status.damage = row[3]
             attack_status.memo = row[4]
             attack_status.attacked = row[5]
-            attack_status.created = row[8]
+            attack_status.created = row[8].astimezone(JST)
             boss_status_data.attack_players.append(attack_status)
 
         for row in cur.execute("select * from CarryOver"):
@@ -631,7 +632,7 @@ class SQLiteUtil():
                 continue
             carryover = CarryOver(ATTACK_TYPE_DICT[row[3]], row[2])
             carryover.carry_over_time = row[4]
-            carryover.created = row[5]
+            carryover.created = row[5].astimezone(JST)
             player_data.carry_over_list.append(carryover)
 
         for row in cur.execute("select * from FormData"):
@@ -642,6 +643,6 @@ class SQLiteUtil():
             clan_data.form_data.sheet_url = row[2]
             clan_data.form_data.name_entry = row[3]
             clan_data.form_data.discord_id_entry = row[4]
-            clan_data.form_data.created = row[5]
+            clan_data.form_data.created = row[5].astimezone(JST)
         con.close()
         return clan_data_dict
