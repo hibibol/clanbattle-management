@@ -31,6 +31,7 @@ async def get_clan_battle_data() -> None:
     for i, map in enumerate(clan_battle_abstract["maps"]):
         hp_list_in_level = []
         for id in map["boss_ids"]:
+            await asyncio.sleep(0.5)
             boss_data = await get_from_web_api(BASE_URL + f"enemies/{id}")
             hp_list_in_level.append(int(boss_data["parameter"]["hp"] // 10000))
             if i == 0:
