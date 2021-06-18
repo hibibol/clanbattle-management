@@ -217,23 +217,6 @@ class ClanBattle(commands.Cog):
         SQLiteUtil.update_clandata(clan_data)
 
     @cog_ext.cog_slash(
-        description="凸管理の初期化を実施します。",
-        guild_ids=GUILD_IDS
-    )
-    async def reset(self, ctx: SlashContext):
-        """凸管理の初期化を実施する"""
-        await ctx.send(content="凸管理の初期化を実施します。")
-        clan_data = self.clan_data[ctx.channel.category_id]
-        if clan_data is None:
-            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
-            return
-        await self.initialize_clandata(clan_data)
-        await self._initialize_progress_messages(clan_data)
-        await self._initialize_remain_attack_message(clan_data)
-        await self._initialize_reserve_message(clan_data)
-        SQLiteUtil.update_clandata(clan_data)
-
-    @cog_ext.cog_slash(
         description="ボスに凸宣言した時の処理を実施します",
         guild_ids=GUILD_IDS,
         options=[
