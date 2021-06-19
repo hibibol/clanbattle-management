@@ -1,3 +1,4 @@
+import logging.config
 import traceback
 from logging import getLogger
 
@@ -7,6 +8,7 @@ from discord_slash import SlashCommand
 
 from setting import TOKEN
 
+logging.config.fileConfig('logging.conf')
 logger = getLogger(__name__)
 
 INITIAL_EXTENSIONS = [
