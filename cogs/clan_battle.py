@@ -838,8 +838,8 @@ class ClanBattle(commands.Cog):
         """ユーザーから予約に関する情報を取得する"""
         setting_content_damage = f"{user.mention} 想定ダメージを送信してください\nスペース後にコメントを付けられます (例: `600 60s討伐`)"
         setting_content_co = f"{user.mention} 持ち越しの予約ですか？"
-        setting_message_cancel = f"{user.mention} 予約をキャンセルしました"
-        setting_content_fin = "予約を受け付けました"
+        setting_message_cancel = f"{user.mention} タイムアウトのため予約設定をキャンセルしました"
+        setting_content_fin = "予約設定を受け付けました"
         command_channnel = self.bot.get_channel(clan_data.command_channel_id)
         await command_channnel.send(content=setting_content_damage)
 
