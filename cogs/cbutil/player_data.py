@@ -41,7 +41,7 @@ class PlayerData():
 
     def create_txt(self, display_name: str) -> None:
         """残凸表示時のメッセージを作成する"""
-        txt = f"{display_name} \t {EMOJI_PHYSICS}{self.physics_attack} {EMOJI_MAGIC}{self.magic_attack}"
+        txt = f"{display_name}\t{EMOJI_PHYSICS}{self.physics_attack} {EMOJI_MAGIC}{self.magic_attack}"
         if self.raw_limit_time_text:
             txt += " " + create_limit_time_text(self.raw_limit_time_text)
         if self.carry_over_list:

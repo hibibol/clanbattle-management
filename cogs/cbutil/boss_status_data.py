@@ -33,10 +33,10 @@ class AttackStatus():
         """
 
         txt = self.attack_type.value
-        txt += f"{'{:,}'.format(self.damage)}万 {self.memo} {display_name}  "\
+        txt += f"{'{:,}'.format(self.damage)}万 {self.memo} " + "持ち越し" * self.carry_over\
+            + f"\n　　-{display_name} "\
             + f"({self.player_data.physics_attack+self.player_data.magic_attack}/3"\
-            + f" 物{self.player_data.physics_attack}魔{self.player_data.magic_attack})"\
-            + "持ち越し" * self.carry_over
+            + f" 物{self.player_data.physics_attack}魔{self.player_data.magic_attack})"
         if self.player_data.raw_limit_time_text:
             txt += " " + create_limit_time_text(self.player_data.raw_limit_time_text)
         return txt

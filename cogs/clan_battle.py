@@ -5,6 +5,7 @@ from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 
 import discord
+from discord import colour
 from discord.channel import TextChannel
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
@@ -354,7 +355,7 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def defeat_boss(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int]):
+    async def defeat_boss(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int] = None):
         """コマンドからボスを討伐した時の処理を実施する。"""
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
@@ -765,12 +766,14 @@ class ClanBattle(commands.Cog):
         remain_attack_co = []
         today = (datetime.now(JST) - timedelta(hours=5)).strftime('%m月%d日')
         embed = discord.Embed(
-            title=f"{today} の残凸状況")
+            title=f"{today} の残凸状況",
+            colour=colour.Colour.orange()
+        )
         sum_remain_attack = 0
         guild = self.bot.get_guild(clan_data.guild_id)
         for player_data in clan_data.player_data_dict.values():
             user = guild.get_member(player_data.user_id)
-            txt = player_data.create_txt(user.display_name)
+            txt = "- " + player_data.create_txt(user.display_name)
             sum_attack = player_data.magic_attack + player_data.physics_attack
             sum_remain_attack += 3 - sum_attack
             if player_data.carry_over_list:
@@ -782,14 +785,14 @@ class ClanBattle(commands.Cog):
             if content:
                 embed.add_field(
                     name=f"残{3-i}凸",
-                    value=content,
+                    value=f"```md\n{content.replace('_', '＿')}\n```",
                     inline=False
                 )
         content = "\n".join(remain_attack_co)
         if content:
             embed.add_field(
                 name="持ち越し所持者",
-                value=content,
+                value=f"```md\n{content.replace('_', '＿')}\n```",
                 inline=False
             )
         embed.set_footer(
