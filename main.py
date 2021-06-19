@@ -28,8 +28,8 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         logger.info("Login was successful.")
-        logger.info("bot name: ", self.user.name)
-        logger.info("bot id: ", self.user.id)
+        logger.info(f"bot name: {self.user.name}")
+        logger.info(f"bot id: {self.user.id}")
 
 
 # MyBotのインスタンス化及び起動処理。

@@ -512,7 +512,7 @@ class SQLiteUtil():
             carryover.carry_over_time,
             carryover.created
         ) for carryover in player_data.carry_over_list]
-        cur.executemany(REGISTER_CLANDATA_SQL, records)
+        cur.executemany(REGISTER_CARRYOVER_DATA_SQL, records)
         con.commit()
         con.close()
 

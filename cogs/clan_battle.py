@@ -38,12 +38,14 @@ class ClanBattle(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        logger.info("loading ClanBattle data...")
         asyncio.create_task(update_clanbattledata())
         # bossデータの読み込みが完了するまで待つ
         while not ClanBattleData.boudaries:
             await asyncio.sleep(1)
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
+        logger.info("ClanBattle Management Ready!")
 
     @cog_ext.cog_slash(
         description="凸管理するメンバーを追加します。オプションがない場合、コマンドを実行した人が追加されます。",
@@ -541,9 +543,11 @@ class ClanBattle(commands.Cog):
                 if OperationType.LAST_ATTACK:
                     clan_data.boss_status_data[boss_index].beated = False
                     SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
+
                 await self._update_progress_message(clan_data, boss_index)
                 await self._update_remain_attack_message(clan_data)
                 SQLiteUtil.update_playerdata(clan_data, player_data)
+                SQLiteUtil.reregister_carryover_data(clan_data, player_data)
 
     async def _delete_reserve_by_attack(self, clan_data: ClanData, attack_status: AttackStatus, boss_idx: int):
         """ボス攻撃時に予約の削除を行う"""
@@ -980,7 +984,7 @@ class ClanBattle(commands.Cog):
             await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    player_data.log.append((OperationType.ATTACK, boss_index, player_data.__dict__))
+                    player_data.log.append((OperationType.ATTACK, boss_index, player_data.to_dict()))
                     await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
                     break
             return await remove_reaction()
@@ -989,7 +993,7 @@ class ClanBattle(commands.Cog):
             await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.__dict__))
+                    player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.to_dict()))
                     await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)
                     SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
                     break
@@ -1013,9 +1017,10 @@ class ClanBattle(commands.Cog):
                 if reserve_data.player_data.user_id == payload.user_id:
                     reserve_index = len(clan_data.reserve_list[boss_index]) - i - 1
                     reserve_info = await self._get_reserve_info(clan_data, player_data, user)
-                    reserve_data.set_reserve_info(reserve_info)
-                    await self._update_reserve_message(clan_data, boss_index)
-                    SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
+                    if reserve_info:
+                        reserve_data.set_reserve_info(reserve_info)
+                        await self._update_reserve_message(clan_data, boss_index)
+                        SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_REVERSE:

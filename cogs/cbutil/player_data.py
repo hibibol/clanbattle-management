@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Dict, List, Tuple
 
+import copy
+
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.operation_type import OperationType
@@ -50,3 +52,10 @@ class PlayerData():
         self.physics_attack = dict["physics_attack"]
         self.magic_attack = dict["magic_attack"]
         self.carry_over_list = dict["carry_over_list"]
+
+    def to_dict(self) -> dict:
+        return {
+            "physics_attack": self.physics_attack,
+            "magic_attack": self.magic_attack,
+            "carry_over_list": copy.deepcopy(self.carry_over_list)
+        }
