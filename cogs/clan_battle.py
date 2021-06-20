@@ -1,8 +1,9 @@
 import asyncio
+from cogs.cbutil.log_data import LogData
 from collections import defaultdict
 from datetime import datetime, timedelta
 from logging import getLogger
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import discord
 from discord import colour
@@ -408,10 +409,12 @@ class ClanBattle(commands.Cog):
 
         if not player_data.log:
             return await ctx.send("元に戻す内容がありませんでした")
-        log_type, log_index, log_data = player_data.log[-1]
+        log_data = player_data.log[-1]
 
-        await ctx.send(f"{member.display_name}の{log_index+1}ボスに対する`{OPERATION_TYPE_DESCRIPTION_DICT[log_type]}`を元に戻します。")
-        await self._undo(clan_data, player_data, log_type, log_index, log_data)
+        await ctx.send(
+            f"{member.display_name}の{log_data.boss_index+1}ボスに対する"
+            f"`{OPERATION_TYPE_DESCRIPTION_DICT[log_data.operation_type]}`を元に戻します。")
+        await self._undo(clan_data, player_data, log_data)
 
     @cog_ext.cog_slash(
         description="持越時間を登録します。",
@@ -511,9 +514,10 @@ class ClanBattle(commands.Cog):
             return await ctx.send("日程調査用のアンケートフォームが作成されていません。")
         return await ctx.send(clan_data.form_data.sheet_url)
 
-    async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_type: OperationType, boss_index: int, log_data: Dict):
+    async def _undo(self, clan_data: ClanData, player_data: PlayerData, log_data: LogData):
         """元に戻す処理を実施する。"""
-
+        boss_index = log_data.boss_index
+        log_type = log_data.operation_type
         if log_type is OperationType.ATTACK_DECLAR:
             attack_index = -1
             for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
@@ -536,15 +540,14 @@ class ClanBattle(commands.Cog):
 
             if attack_index != -1:
                 attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
-                player_data.from_dict(log_data)
+                player_data.from_dict(log_data.player_data)
                 attack_status.attacked = False
                 SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
-                del player_data.log[-1]
 
                 if log_type is OperationType.LAST_ATTACK:
-                    clan_data.boss_status_data[boss_index].beated = False
+                    clan_data.boss_status_data[boss_index].beated = log_data.beated
                     SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
-
+                del player_data.log[-1]
                 await self._update_progress_message(clan_data, boss_index)
                 await self._update_remain_attack_message(clan_data)
                 SQLiteUtil.update_playerdata(clan_data, player_data)
@@ -642,6 +645,14 @@ class ClanBattle(commands.Cog):
         self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
     ) -> None:
         """ボスに凸したときに実行する"""
+
+        # ログデータの取得
+        attack_status.player_data.log.append(
+            LogData(
+                OperationType.ATTACK, boss_index, attack_status.player_data.to_dict()
+            )
+        )
+
         attack_status.attacked = True
         if attack_status.attack_type is AttackType.CARRYOVER:
             carry_over_index = 0
@@ -673,12 +684,25 @@ class ClanBattle(commands.Cog):
         clan_data.boss_status_data[boss_index].attack_players.append(attack_status)
         await self._update_progress_message(clan_data, boss_index)
         SQLiteUtil.register_attackstatus(clan_data, boss_index, attack_status)
-        player_data.log.append((OperationType.ATTACK_DECLAR, boss_index, {}))
+        player_data.log.append(LogData(
+            OperationType.ATTACK_DECLAR, boss_index
+        ))
     
     async def _last_attack_boss(
         self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
     ) -> None:
         """ボスを討伐した際に実行する"""
+        if clan_data.boss_status_data[boss_index].beated:
+            return await channel.send("既に討伐済みのボスです")
+
+        # ログデータの取得
+        attack_status.player_data.log.append(LogData(
+            OperationType.LAST_ATTACK,
+            boss_index,
+            attack_status.player_data.to_dict(),
+            clan_data.boss_status_data[boss_index].beated)
+        )
+
         attack_status.attacked = True
         if attack_status.attack_type is AttackType.CARRYOVER:
             carry_over_index = 0
@@ -991,7 +1015,6 @@ class ClanBattle(commands.Cog):
             await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    player_data.log.append((OperationType.ATTACK, boss_index, player_data.to_dict()))
                     await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
                     break
             return await remove_reaction()
@@ -1000,7 +1023,6 @@ class ClanBattle(commands.Cog):
             await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    player_data.log.append((OperationType.LAST_ATTACK, boss_index, player_data.to_dict()))
                     await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)
                     SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
                     break
@@ -1033,14 +1055,14 @@ class ClanBattle(commands.Cog):
         elif str(payload.emoji) == EMOJI_REVERSE:
             if not player_data.log:
                 return await remove_reaction()
-            log_type, log_index, log_data = player_data.log[-1]
-
+            log_data = player_data.log[-1]
+            log_index = log_data.boss_index
             if log_index != boss_index:
                 txt = f"<@{payload.user_id}> すでに{log_index+1}ボスに凸しています。先に<#{clan_data.boss_channel_ids[log_index]}>で{EMOJI_REVERSE}を押してください"
                 channel = self.bot.get_channel(payload.channel_id)
                 await channel.send(txt, delete_after=30)
                 return await remove_reaction()
-            await self._undo(clan_data, player_data, log_type, log_index, log_data)
+            await self._undo(clan_data, player_data, log_data)
             return await remove_reaction()
 
 def setup(bot):

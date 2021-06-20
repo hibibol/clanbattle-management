@@ -1,11 +1,11 @@
+from typing import List
+from cogs.cbutil.log_data import LogData
 from datetime import datetime
-from typing import Dict, List, Tuple
 
 import copy
 
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
-from cogs.cbutil.operation_type import OperationType
 from cogs.cbutil.util import create_limit_time_text
 from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
 
@@ -29,7 +29,7 @@ class PlayerData():
         self.user_id: int = user_id
         self.physics_attack: int = 0
         self.magic_attack: int = 0
-        self.log: List[Tuple[OperationType, int, Dict]] = []
+        self.log: List[LogData] = []
         self.carry_over_list: List[CarryOver] = []
         self.raw_limit_time_text: str = ""
 
