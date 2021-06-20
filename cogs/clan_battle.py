@@ -1071,7 +1071,7 @@ class ClanBattle(commands.Cog):
                     reserve_data.set_reserve_info(reserve_info)
                     await self._update_reserve_message(clan_data, boss_index)
                     SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
-            return await remove_reaction
+            return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_REVERSE:
             if not player_data.log:
