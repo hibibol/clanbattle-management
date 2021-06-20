@@ -541,7 +541,7 @@ class ClanBattle(commands.Cog):
                 SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
                 del player_data.log[-1]
 
-                if OperationType.LAST_ATTACK:
+                if log_type is OperationType.LAST_ATTACK:
                     clan_data.boss_status_data[boss_index].beated = False
                     SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
 
