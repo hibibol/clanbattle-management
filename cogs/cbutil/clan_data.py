@@ -31,13 +31,7 @@ class ClanData():
             [], [], [], [], []
         ]
 
-        self.boss_status_data: List[BossStatusData] = [
-            BossStatusData(self.lap, 0),
-            BossStatusData(self.lap, 1),
-            BossStatusData(self.lap, 2),
-            BossStatusData(self.lap, 3),
-            BossStatusData(self.lap, 4)
-        ]
+        self.initialize_boss_status_data()
         self.reserve_message_ids: List[int] = [0, 0, 0, 0, 0]
         self.remain_attack_message_id: int = 0
         self.progress_message_ids: List[int] = [0, 0, 0, 0, 0]
@@ -46,7 +40,7 @@ class ClanData():
         self.form_data = FormData()
 
     def initialize_boss_status_data(self):
-        self.boss_status_data = list(BossStatusData(self.lap, i) for i in range(5))
+        self.boss_status_data = [BossStatusData(self.lap, i) for i in range(5)]
 
     def get_boss_index_from_channel_id(self, channel_id: int) -> Optional[int]:
         try:

@@ -618,6 +618,8 @@ class ClanBattle(commands.Cog):
         """各ボスに対する凸状況を初期化して新しく進行メッセージを送信する"""
         guild = self.bot.get_guild(clan_data.guild_id)
         clan_data.initialize_boss_status_data()
+        SQLiteUtil.delete_all_boss_status_data(clan_data)  # 消して作って効率が悪いのでどうにかしたいお気持ち。
+        SQLiteUtil.register_all_boss_status_data(clan_data)
         SQLiteUtil.delete_all_attackstatus(clan_data)
 
         for i, channel_id in enumerate(clan_data.boss_channel_ids):

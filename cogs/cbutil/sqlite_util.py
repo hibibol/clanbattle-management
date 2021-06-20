@@ -147,6 +147,9 @@ UPDATE_BOSS_STATUS_DATA_SQL = """update BossStatusData
 DELETE_BOSS_STATUS_DATA_SQL = """delete from BossStatusData
 where
     category_id=? and boss_index=?"""
+DELETE_ALL_BOSS_STATUS_DATA_SQL = """delete from BossStatusData
+where
+    category_id=?"""
 REGISTER_CARRYOVER_DATA_SQL = """insert into CarryOver values (
     :category_id,
     :user_id,
@@ -432,6 +435,17 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
+    def register_all_boss_status_data(clan_data: ClanData):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        records = [
+            (clan_data.category_id, i, boss_status_data.lap, boss_status_data.beated)
+            for i, boss_status_data in enumerate(clan_data.boss_status_data)]
+        cur.executemany(REGISTER_BOSS_STATUS_DATA_SQL, records)
+        con.commit()
+        con.close()
+
+    @staticmethod
     def update_boss_status_data(clan_data: ClanData, boss_index: int, boss_status_data: BossStatusData):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
@@ -451,6 +465,16 @@ class SQLiteUtil():
         cur.execute(DELETE_BOSS_STATUS_DATA_SQL, (
             clan_data.category_id,
             boss_index,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def delete_all_boss_status_data(clan_data: ClanData):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(DELETE_ALL_BOSS_STATUS_DATA_SQL, (
+            clan_data.category_id,
         ))
         con.commit()
         con.close()
