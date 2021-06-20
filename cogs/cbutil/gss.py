@@ -1,3 +1,4 @@
+from typing import List
 import gspread_asyncio
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -28,7 +29,7 @@ async def get_sheet_values(sheeturl: str, sheet_name: str):
     return list_of_lists
 
 
-async def get_worksheet_list(sheeturl: str):
+async def get_worksheet_list(sheeturl: str) -> List[str]:
     """ワークシートの一覧を取得"""
     agc = await agcm.authorize()
     sh = await agc.open_by_url(sheeturl)

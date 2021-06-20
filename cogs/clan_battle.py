@@ -20,7 +20,7 @@ from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData, update_clanbattledata
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.form_data import create_form_data
-from cogs.cbutil.gss import get_sheet_values
+from cogs.cbutil.gss import get_sheet_values, get_worksheet_list
 from cogs.cbutil.operation_type import (OPERATION_TYPE_DESCRIPTION_DICT,
                                         OperationType)
 from cogs.cbutil.player_data import CarryOver, PlayerData
@@ -892,14 +892,18 @@ class ClanBattle(commands.Cog):
         if not clan_data.form_data.sheet_url:
             return
 
-        sheet_data = await get_sheet_values(
-            clan_data.form_data.sheet_url,
-            "フォームの回答 1"
-        )
-        for row in sheet_data[1:]:
-            player_data = clan_data.player_data_dict.get(int(row[2]))
-            if player_data:
-                player_data.raw_limit_time_text = row[2+day]
+        ws_titles = await get_worksheet_list()
+        candidate_words = ["フォームの回答 1", "第 1 张表单回复"]
+        for candidate_word in candidate_words:
+            if candidate_word in ws_titles:
+                sheet_data = await get_sheet_values(
+                    clan_data.form_data.sheet_url,
+                    candidate_word
+                )
+                for row in sheet_data[1:]:
+                    player_data = clan_data.player_data_dict.get(int(row[2]))
+                    if player_data:
+                        player_data.raw_limit_time_text = row[2+day]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
