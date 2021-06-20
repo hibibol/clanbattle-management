@@ -916,7 +916,7 @@ class ClanBattle(commands.Cog):
         if not clan_data.form_data.sheet_url:
             return
 
-        ws_titles = await get_worksheet_list()
+        ws_titles = await get_worksheet_list(clan_data.form_data.sheet_url)
         candidate_words = ["フォームの回答 1", "第 1 张表单回复"]
         for candidate_word in candidate_words:
             if candidate_word in ws_titles:
