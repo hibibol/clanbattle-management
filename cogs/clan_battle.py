@@ -1029,28 +1029,49 @@ class ClanBattle(commands.Cog):
             return await remove_reaction()
         # 押した人が一番最後に登録した予約を削除する
         elif str(payload.emoji) == EMOJI_CANCEL and reserve_flag:
-            reserve_index = -1
-            for i, reserve_data in enumerate(clan_data.reserve_list[boss_index][::-1]):
-                if reserve_data.player_data.user_id == payload.user_id:
-                    reserve_index = len(clan_data.reserve_list[boss_index]) - i - 1
-                    break
-            if reserve_index != -1:
+            user_reserve_data_list = [
+                (i, reserve_data) for i, reserve_data in enumerate(clan_data.reserve_list[boss_index])
+                if reserve_data.player_data.user_id == payload.user_id
+            ]
+            if user_reserve_data_list:
+                rd_list_index = 0
+                if len(user_reserve_data_list) > 1:
+                    command_channel = self.bot.get_channel(clan_data.command_channel_id)
+                    user_selected_index = await select_from_list(
+                        self.bot, command_channel, user, [rd[1] for rd in user_reserve_data_list], "予約が複数あります。以下から削除をしたい予約を選んでください。"
+                    )
+                    if user_selected_index is None:
+                        return await remove_reaction()
+                    else:
+                        rd_list_index = user_selected_index
+                reserve_index = user_reserve_data_list[rd_list_index][0]
                 SQLiteUtil.delete_reservedata(clan_data, boss_index, clan_data.reserve_list[boss_index][reserve_index])
                 del clan_data.reserve_list[boss_index][reserve_index]
                 await self._update_reserve_message(clan_data, boss_index)
-            return await remove_reaction()
-
+            await remove_reaction()
+                
         elif str(payload.emoji) == EMOJI_SETTING and reserve_flag:
-            reserve_index = -1
-            for i, reserve_data in enumerate(clan_data.reserve_list[boss_index][::-1]):
-                if reserve_data.player_data.user_id == payload.user_id:
-                    reserve_index = len(clan_data.reserve_list[boss_index]) - i - 1
-                    reserve_info = await self._get_reserve_info(clan_data, player_data, user)
-                    if reserve_info:
-                        reserve_data.set_reserve_info(reserve_info)
-                        await self._update_reserve_message(clan_data, boss_index)
-                        SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
-            return await remove_reaction()
+            user_reserve_data_list = [
+                reserve_data for reserve_data in clan_data.reserve_list[boss_index]
+                if reserve_data.player_data.user_id == payload.user_id]
+            if user_reserve_data_list:
+                reserve_index = 0
+                if len(user_reserve_data_list) > 1:
+                    command_channel = self.bot.get_channel(clan_data.command_channel_id)
+                    user_selected_index = await select_from_list(
+                        self.bot, command_channel, user, user_reserve_data_list, "予約が複数あります。以下から予約設定をしたい予約を選んでください。"
+                    )
+                    if user_selected_index is None:
+                        return await remove_reaction()
+                    else:
+                        reserve_index = user_selected_index
+                reserve_info = await self._get_reserve_info(clan_data, player_data, user)
+                if reserve_info:
+                    reserve_data = user_reserve_data_list[reserve_index]
+                    reserve_data.set_reserve_info(reserve_info)
+                    await self._update_reserve_message(clan_data, boss_index)
+                    SQLiteUtil.update_reservedata(clan_data, boss_index, reserve_data)
+            return await remove_reaction
 
         elif str(payload.emoji) == EMOJI_REVERSE:
             if not player_data.log:

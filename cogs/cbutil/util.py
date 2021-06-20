@@ -32,7 +32,7 @@ async def select_from_list(
     user: discord.User,
     contents: List,  # 文字列化可能object
     default_message: str
-):
+) -> Optional[int]:
     """リストの中からユーザーに選んでもらう
     返り値:
         selected_listのindex
@@ -48,12 +48,15 @@ async def select_from_list(
     select_message = await channel.send(select_message_content, delete_after=60)
     for i in range(len(contents)):
         await select_message.add_reaction(reaction_number[i])
-    reaction, _ = await bot.wait_for(
-        'reaction_add', timeout=60.0,
-        check=lambda reaction, reaction_user: reaction_user == user
-        and str(reaction.emoji) in reaction_number and reaction_number.index(str(reaction.emoji)) < len(contents)
-    )
-    return reaction_number.index(str(reaction.emoji))
+    try:
+        reaction, _ = await bot.wait_for(
+            'reaction_add', timeout=60.0,
+            check=lambda reaction, reaction_user: reaction_user == user
+            and str(reaction.emoji) in reaction_number and reaction_number.index(str(reaction.emoji)) < len(contents)
+        )
+        return reaction_number.index(str(reaction.emoji))
+    except TimeoutError:
+        return None
 
 
 async def get_from_web_api(url: str):

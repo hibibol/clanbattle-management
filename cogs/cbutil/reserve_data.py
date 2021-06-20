@@ -38,6 +38,13 @@ class ReserveData():
         self.memo: str = reserve_info[1]
         self.carry_over: bool = reserve_info[2]
 
+    def __str__(self) -> str:
+        txt = self.attack_type.value
+        if self.damage != -1:
+            txt += f" {'{:,}'.format(self.damage)}万 {self.memo} "\
+                + "持ち越し" * self.carry_over
+        return txt
+
 
 RESERVE_TYPE_DICT = {
     EMOJI_ONLY: ReserveType.ONLY,
