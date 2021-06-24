@@ -1041,7 +1041,7 @@ class ClanBattle(commands.Cog):
                 if len(user_reserve_data_list) > 1:
                     command_channel = self.bot.get_channel(clan_data.command_channel_id)
                     user_selected_index = await select_from_list(
-                        self.bot, command_channel, user, [rd[1] for rd in user_reserve_data_list], "予約が複数あります。以下から削除をしたい予約を選んでください。"
+                        self.bot, command_channel, user, [rd[1] for rd in user_reserve_data_list], f"{user.mention} 予約が複数あります。以下から削除をしたい予約を選んでください。"
                     )
                     if user_selected_index is None:
                         return await remove_reaction()
@@ -1062,7 +1062,7 @@ class ClanBattle(commands.Cog):
                 if len(user_reserve_data_list) > 1:
                     command_channel = self.bot.get_channel(clan_data.command_channel_id)
                     user_selected_index = await select_from_list(
-                        self.bot, command_channel, user, user_reserve_data_list, "予約が複数あります。以下から予約設定をしたい予約を選んでください。"
+                        self.bot, command_channel, user, user_reserve_data_list, f"{user.mention} 予約が複数あります。以下から予約設定をしたい予約を選んでください。"
                     )
                     if user_selected_index is None:
                         return await remove_reaction()
