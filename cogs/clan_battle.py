@@ -572,17 +572,18 @@ class ClanBattle(commands.Cog):
         if attack_comp or co_comp:
             for i in range(5):
                 old_reserve_set = set(clan_data.reserve_list[i])
-                new_reserve_set = {
+                finished_reserve_set = {
                     reserve_data
                     for reserve_data in clan_data.reserve_list[i]
-                    if (attack_comp and reserve_data.player_data.user_id == player_data.user_id and not reserve_data.carry_over)
+                    if (attack_comp and reserve_data.player_data.user_id == player_data.user_id and not reserve_data.carry_over) or (
+                        co_comp and reserve_data.player_data.user_id == player_data.user_id and reserve_data.carry_over)
                 }
-                diff_set = old_reserve_set - new_reserve_set
-                if diff_set:
-                    for reserve_data in diff_set:
+                diff_set = old_reserve_set - finished_reserve_set
+                if finished_reserve_set:
+                    for reserve_data in finished_reserve_set:
                         SQLiteUtil.delete_reservedata(clan_data, i, reserve_data)
-                    clan_data.reserve_list[i] = list(new_reserve_set)
-                    await self._update_reserve_message(clan_data, boss_idx)
+                    clan_data.reserve_list[i] = list(diff_set)
+                    await self._update_reserve_message(clan_data, i)
 
     def _create_progress_message(self, clan_data: ClanData, boss_index: int, guild: discord.Guild) -> discord.Embed:
         """進行用のメッセージを作成する"""
