@@ -724,14 +724,15 @@ class ClanBattle(commands.Cog):
             del attack_status.player_data.carry_over_list[carry_over_index]
         else:
             attack_status.update_attack_log()
+            SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
             carry_over = CarryOver(attack_status.attack_type, boss_index)
             if len(attack_status.player_data.carry_over_list) < 3:
                 attack_status.player_data.carry_over_list.append(carry_over)
                 SQLiteUtil.register_carryover_data(clan_data, attack_status.player_data, carry_over)
         clan_data.boss_status_data[boss_index].beated = True
+        await self._update_progress_message(clan_data, boss_index)
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
         SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
-        await self._update_progress_message(clan_data, boss_index)
 
         # この周のボスがすべて倒された場合は次週に進む
         if all(clan_data.boss_status_data[i].beated for i in range(5)):
