@@ -307,7 +307,7 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def attack_fin(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int], damage: Optional[int]):
+    async def attack_fin(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int] = None, damage: Optional[int] = None):
         """ボスに凸した時の処理を実施する"""
         clan_data = self.clan_data[ctx.channel.category_id]
         if clan_data is None:
