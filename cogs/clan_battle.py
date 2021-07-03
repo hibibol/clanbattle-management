@@ -38,6 +38,7 @@ logger = getLogger(__name__)
 class ClanBattle(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.ready = False
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -46,6 +47,7 @@ class ClanBattle(commands.Cog):
         # bossデータの読み込みが完了するまで待つ
         while not ClanBattleData.boudaries:
             await asyncio.sleep(1)
+        self.ready = True
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
         logger.info("ClanBattle Management Ready!")
@@ -284,7 +286,6 @@ class ClanBattle(commands.Cog):
 
         await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{boss_index+1}ボスに宣言します")
         await self._attack_declare(clan_data, player_data, attack_type_v, boss_index)
-        # await ctx.channel.send("処理が完了しました")
 
     @cog_ext.cog_slash(
         description="ボスに凸した時の処理を実施します。",
@@ -956,6 +957,8 @@ class ClanBattle(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """凸のダメージを登録する"""
+        if not self.ready:
+            return
         if message.author.id == self.bot.user.id:
             return
     
