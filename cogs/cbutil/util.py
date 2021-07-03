@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 
 import aiohttp
 import discord
+import jaconv
 
 from setting import JST
 
@@ -17,7 +18,7 @@ def get_damage(damage_message_txt: str) -> Optional[Tuple[int, str]]:
         memo: str
     """
     damage_message_txts = damage_message_txt.split()
-    damage_txt = damage_message_txts[0].replace("万", "")
+    damage_txt = jaconv.z2h(damage_message_txts[0].replace("万", ""), digit=True)
     if damage_txt.isdecimal():
         if len(damage_txt) > 5:
             damage_txt = damage_txt[:-4]

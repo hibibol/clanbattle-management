@@ -12,6 +12,7 @@ discord-py-slash-command = "*"
 isort = "*"
 gspread-asyncio = "*"
 oauth2client = "*"
+jaconv = "*"
 
 [dev-packages]
 flake8 = "*"
