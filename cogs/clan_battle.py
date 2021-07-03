@@ -1,5 +1,4 @@
 import asyncio
-from cogs.cbutil.log_data import LogData
 from collections import defaultdict
 from datetime import datetime, timedelta
 from logging import getLogger
@@ -22,6 +21,7 @@ from cogs.cbutil.clan_battle_data import ClanBattleData, update_clanbattledata
 from cogs.cbutil.clan_data import ClanData
 from cogs.cbutil.form_data import create_form_data
 from cogs.cbutil.gss import get_sheet_values, get_worksheet_list
+from cogs.cbutil.log_data import LogData
 from cogs.cbutil.operation_type import (OPERATION_TYPE_DESCRIPTION_DICT,
                                         OperationType)
 from cogs.cbutil.player_data import CarryOver, PlayerData
@@ -30,7 +30,8 @@ from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_PHYSICS,
-                     EMOJI_REVERSE, EMOJI_SETTING, EMOJI_TASK_KILL, EMOJI_YES, GUILD_IDS, JST)
+                     EMOJI_REVERSE, EMOJI_SETTING, EMOJI_TASK_KILL, EMOJI_YES,
+                     GUILD_IDS, JST)
 
 logger = getLogger(__name__)
 

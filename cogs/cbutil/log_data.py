@@ -2,6 +2,7 @@ from typing import Optional
 
 from cogs.cbutil.operation_type import OperationType
 
+
 class LogData():
     def __init__(
         self,
