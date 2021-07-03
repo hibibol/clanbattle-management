@@ -961,12 +961,15 @@ class ClanBattle(commands.Cog):
             return
         if message.author.id == self.bot.user.id:
             return
-    
+
+        if message.channel.category is None:
+            return
         category_channel_id = message.channel.category.id
         clan_data = self.clan_data[category_channel_id]
 
         if clan_data is None:
             return
+
         if message.channel.id not in clan_data.boss_channel_ids:
             return
         boss_index = clan_data.boss_channel_ids.index(message.channel.id)
