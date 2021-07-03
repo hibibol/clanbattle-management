@@ -462,7 +462,7 @@ class ClanBattle(commands.Cog):
             await ctx.send(content="アンケートフォームを新規作成しています。")
             new_flag = True if len(clan_data.form_data.form_url) == 0 else False
             async with ctx.channel.typing():
-                title = ctx.guild.name + f" 日程調査/{datetime.now(JST).month}月"
+                title = f"{datetime.now(JST).month}月 " + ctx.guild.name + " 日程調査"
                 form_data_dict = await create_form_data(title)
                 clan_data.form_data.set_from_form_data_dict(form_data_dict)
             # ctx.sendが使えなくなるので冗長だけど分ける。

@@ -36,11 +36,18 @@ function create_form(title, start_day){
   }
 
   // 集計用のSpreadsheetを作成する
-  const ss = SpreadsheetApp.create(title)
-  const ss_id = ss.getId()
-  const ss_file = DriveApp.getFileById(ss_id)
-  ss_file.moveTo(folder)
-  form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId())
+  const template_ss_file = DriveApp.getFileById(template_ss_id)
+  var ss_file = template_ss_file.makeCopy(title, folder)
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, ss_file.getId())
+
+  var ss = SpreadsheetApp.open(ss_file)
+  var sheets = ss.getSheets()
+
+  sheets.forEach(sheet => {
+    if (!template_sheet_names.includes(sheet.getName())) {
+      sheet.setName("フォームの回答")
+    }
+  });
 
   // 補完用のentry idを取得する
   var fieldIds = [];
@@ -56,7 +63,7 @@ function create_form(title, start_day){
   delete response;
   return {
     form_url: form.getPublishedUrl(),
-    ss_url: ss.getUrl(),
+    ss_url: ss_file.getUrl(),
     name_entry: fieldIds[0],
     discord_id_entry: fieldIds[1]
   }
