@@ -984,6 +984,8 @@ class ClanBattle(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if not self.ready:
+            return
         if payload.user_id == self.bot.user.id:
             return
         
@@ -1118,6 +1120,8 @@ class ClanBattle(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     async def set_task_kill(self, payload: discord.RawReactionActionEvent):
         """タスキルをした場合の設定を行う"""
+        if not self.ready:
+            return
         if payload.user_id == self.bot.user.id:
             return
         
@@ -1146,6 +1150,8 @@ class ClanBattle(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_remove")
     async def unset_task_kill(self, payload: discord.RawReactionActionEvent):
         """タスキルをした場合の設定を行う"""
+        if not self.ready:
+            return
         if payload.user_id == self.bot.user.id:
             return
         
