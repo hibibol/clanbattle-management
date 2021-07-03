@@ -593,12 +593,14 @@ class ClanBattle(commands.Cog):
         total_damage: int = 0
         current_hp: int = clan_data.boss_status_data[boss_index].max_hp
         for attack_status in clan_data.boss_status_data[boss_index].attack_players:
-            user = guild.get_member(attack_status.player_data.user_id)
             if attack_status.attacked:
+                user = guild.get_member(attack_status.player_data.user_id)
                 attacked_list.append(f"(凸済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}")
                 current_hp -= attack_status.damage
-            else:
-                attack_list.append(attack_status.create_attack_status_txt(user.display_name))
+        for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+            if not attack_status.attacked:
+                user = guild.get_member(attack_status.player_data.user_id)
+                attack_list.append(attack_status.create_attack_status_txt(user.display_name, current_hp))
                 total_damage += attack_status.damage
         progress_title = f"[{clan_data.lap}週目] {ClanBattleData.boss_names[boss_index]}"
         if clan_data.boss_status_data[boss_index].beated:

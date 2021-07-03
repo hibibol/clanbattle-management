@@ -4,7 +4,7 @@ from typing import List
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.player_data import PlayerData
-from cogs.cbutil.util import create_limit_time_text
+from cogs.cbutil.util import calc_carry_over_time
 from setting import JST
 
 
@@ -26,19 +26,17 @@ class AttackStatus():
         self.carry_over = carry_over
         self.created: datetime = datetime.now(JST)
     
-    def create_attack_status_txt(self, display_name: str) -> str:
+    def create_attack_status_txt(self, display_name: str, current_hp: int) -> str:
         """凸状況を表示するためのテキストを作成する
         
         discordの表示名はここでは取れないのでやらない
         """
 
         txt = self.attack_type.value
-        txt += f"{'{:,}'.format(self.damage)}万 {self.memo} " + "持ち越し" * self.carry_over\
-            + f"\n　　-{display_name} "\
-            + f"({self.player_data.physics_attack+self.player_data.magic_attack}/3"\
-            + f" 物{self.player_data.physics_attack}魔{self.player_data.magic_attack})"
-        if self.player_data.raw_limit_time_text:
-            txt += " " + create_limit_time_text(self.player_data.raw_limit_time_text)
+        txt += f"{'{:,}'.format(self.damage)}万 {self.memo} " + "持ち越し" * self.carry_over
+        if 0 < current_hp < self.damage:
+            txt += f" 持ち越し発生: {calc_carry_over_time(current_hp, self.damage)}秒"
+        txt += self.player_data.create_simple_txt(display_name)
         return txt
 
     def update_attack_log(self) -> None:

@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 from typing import List, Optional, Tuple
 
 import aiohttp
@@ -94,3 +95,10 @@ def create_limit_time_text(raw_limit_time_text: str) -> str:
         if span[0] <= now_hour and now_hour < span[1]:
             time_text_list.append(f"～{span[1]}時")
     return ", ".join(time_text_list)
+
+
+def calc_carry_over_time(remain_hp: int, damage: int) -> int:
+    carry_over_time = math.ceil((1-remain_hp/damage) * 90 + 20)
+    if carry_over_time > 90:
+        carry_over_time = 90
+    return carry_over_time
