@@ -7,7 +7,7 @@ import copy
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.util import create_limit_time_text
-from setting import EMOJI_MAGIC, EMOJI_PHYSICS, JST
+from setting import EMOJI_MAGIC, EMOJI_PHYSICS, EMOJI_TASK_KILL, JST
 
 
 class CarryOver():
@@ -32,20 +32,34 @@ class PlayerData():
         self.log: List[LogData] = []
         self.carry_over_list: List[CarryOver] = []
         self.raw_limit_time_text: str = ""
+        self.task_kill: bool = False
 
     def initialize_attack(self) -> None:
         """凸の進捗状況の初期化を実施する"""
         self.physics_attack = 0
         self.magic_attack = 0
         self.carry_over_list = []
+        self.task_kill = False
+        self.raw_limit_time_text = ""
 
-    def create_txt(self, display_name: str) -> None:
+    def create_txt(self, display_name: str) -> str:
         """残凸表示時のメッセージを作成する"""
         txt = f"{display_name}\t{EMOJI_PHYSICS}{self.physics_attack} {EMOJI_MAGIC}{self.magic_attack}"
+        if self.task_kill:
+            txt += f" {EMOJI_TASK_KILL}"
         if self.raw_limit_time_text:
             txt += " " + create_limit_time_text(self.raw_limit_time_text)
         if self.carry_over_list:
             txt += "\n　　-" + '\n　　-'.join([str(carry_over) for carry_over in self.carry_over_list])
+        return txt
+
+    def create_simple_txt(self, display_name: str) -> str:
+        """進行や予約用に表示するメッセージを作成する"""
+        txt = f"\n　　- {display_name} "\
+            + f"({self.physics_attack+self.magic_attack}/3"\
+            + f" 物{self.physics_attack}魔{self.magic_attack})" + self.task_kill * f" {EMOJI_TASK_KILL}"
+        if self.raw_limit_time_text:
+            txt += " " + create_limit_time_text(self.raw_limit_time_text)
         return txt
 
     def from_dict(self, dict) -> None:

@@ -26,11 +26,11 @@ class ReserveData():
         """予約状況を表示するためのテキストを作成する"""
 
         # txt = self.reserve_type.value + self.attack_type.value
-        txt = f"{self.attack_type.value} {display_name}"
+        txt = self.attack_type.value
         if self.damage != -1:
             txt += f" {'{:,}'.format(self.damage)}万 {self.memo} "\
                 + "持ち越し" * self.carry_over
-        
+        txt += self.player_data.create_simple_txt(display_name)
         return txt
 
     def set_reserve_info(self, reserve_info: Tuple[int, str, bool]) -> None:

@@ -59,12 +59,14 @@ REGISTER_PLAYERDATA_SQL = """insert into PlayerData values (
     :category_id,
     :user_id,
     0,
+    0,
     0
 )"""
 UPDATE_PLAYERDATA_SQL = """update PlayerData
     set
         physics_attack=?,
-        magic_attack=?
+        magic_attack=?,
+        task_kill=?
     where
         category_id=? and user_id=?
 """
@@ -271,6 +273,7 @@ class SQLiteUtil():
         cur.execute(UPDATE_PLAYERDATA_SQL, (
             player_data.physics_attack,
             player_data.magic_attack,
+            player_data.task_kill,
             clan_data.category_id,
             player_data.user_id,
         ))

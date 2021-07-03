@@ -30,7 +30,7 @@ from cogs.cbutil.sqlite_util import SQLiteUtil
 from cogs.cbutil.util import get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_PHYSICS,
-                     EMOJI_REVERSE, EMOJI_SETTING, EMOJI_YES, GUILD_IDS, JST)
+                     EMOJI_REVERSE, EMOJI_SETTING, EMOJI_TASK_KILL, EMOJI_YES, GUILD_IDS, JST)
 
 logger = getLogger(__name__)
 
@@ -1089,6 +1089,63 @@ class ClanBattle(commands.Cog):
                 return await remove_reaction()
             await self._undo(clan_data, player_data, log_data)
             return await remove_reaction()
+
+    @commands.Cog.listener("on_raw_reaction_add")
+    async def set_task_kill(self, payload: discord.RawReactionActionEvent):
+        """タスキルをした場合の設定を行う"""
+        if payload.user_id == self.bot.user.id:
+            return
+        
+        if str(payload.emoji) != EMOJI_TASK_KILL:
+            return
+
+        channel = self.bot.get_channel(payload.channel_id)
+
+        if channel.category is None:
+            return
+
+        category_channel_id = channel.category.id
+        clan_data = self.clan_data[category_channel_id]
+
+        if clan_data is None:
+            return
+
+        if payload.message_id != clan_data.remain_attack_message_id:
+            return
+
+        if player_data := clan_data.player_data_dict.get(payload.user_id):
+            player_data.task_kill = True
+            await self._update_remain_attack_message(clan_data)
+            SQLiteUtil.update_playerdata(clan_data, player_data)
+
+    @commands.Cog.listener("on_raw_reaction_remove")
+    async def unset_task_kill(self, payload: discord.RawReactionActionEvent):
+        """タスキルをした場合の設定を行う"""
+        if payload.user_id == self.bot.user.id:
+            return
+        
+        if str(payload.emoji) != EMOJI_TASK_KILL:
+            return
+
+        channel = self.bot.get_channel(payload.channel_id)
+
+        if channel.category is None:
+            return
+
+        category_channel_id = channel.category.id
+        clan_data = self.clan_data[category_channel_id]
+
+        if clan_data is None:
+            return
+
+        if payload.message_id != clan_data.remain_attack_message_id:
+            return
+
+        if player_data := clan_data.player_data_dict.get(payload.user_id):
+            player_data.task_kill = False
+            await self._update_remain_attack_message(clan_data)
+            SQLiteUtil.update_playerdata(clan_data, player_data)
+
 
 def setup(bot):
     bot.add_cog(ClanBattle(bot))  # TestCogにBotを渡してインスタンス化し、Botにコグとして登録する。
