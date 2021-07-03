@@ -83,4 +83,4 @@ create table FormData (
     name_entry varchar,
     discord_id_entry varchar,
     created datetime
-)
+);
