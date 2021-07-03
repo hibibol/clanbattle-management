@@ -13,6 +13,7 @@ logger = getLogger(__name__)
 
 INITIAL_EXTENSIONS = [
     'cogs.clan_battle',
+    'cogs.error_handler'
 ]
 
 
