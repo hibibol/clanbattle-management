@@ -634,6 +634,7 @@ class SQLiteUtil():
             player_data = PlayerData(row[1])
             player_data.physics_attack = row[2]
             player_data.magic_attack = row[3]
+            player_data.task_kill = row[4]
             clan_data = clan_data_dict[row[0]]
             if clan_data:
                 clan_data.player_data_dict[row[1]] = player_data

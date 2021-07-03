@@ -853,6 +853,7 @@ class ClanBattle(commands.Cog):
         remain_attack_channel = self.bot.get_channel(clan_data.remain_attack_channel_id)
         remain_attack_message = await remain_attack_channel.send(embed=remain_attack_embed)
         clan_data.remain_attack_message_id = remain_attack_message.id
+        await remain_attack_message.add_reaction(EMOJI_TASK_KILL)
 
     async def initialize_clandata(self, clan_data: ClanData) -> None:
         """クランの凸状況を初期化する"""
