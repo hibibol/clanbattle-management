@@ -88,7 +88,7 @@ class ClanBattle(commands.Cog):
                 player_data = PlayerData(member.id)
                 clan_data.player_data_dict[member.id] = PlayerData(member.id)
                 player_data_list.append(player_data)
-
+        await ctx.send(f"{len(player_data_list)}名追加します。")
         await self._update_remain_attack_message(clan_data)
         if player_data_list:
             SQLiteUtil.register_playerdata(clan_data, player_data_list)
@@ -168,6 +168,7 @@ class ClanBattle(commands.Cog):
             category_channel_name = "凸管理"
         try:
             category = await ctx.guild.create_category(category_channel_name)
+            summary_channel = await category.create_text_channel("まとめ")
             boss_channels: List[TextChannel] = []
             for i in range(5):
                 boss_channel = await category.create_text_channel(f"ボス{i+1}")
@@ -215,7 +216,7 @@ class ClanBattle(commands.Cog):
         if clan_data is None:
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
-
+        await ctx.send(content=f"周回数を{lap}に設定します")
         clan_data.lap = lap
         await self._initialize_progress_messages(clan_data)
         await self._update_remain_attack_message(clan_data)
@@ -438,6 +439,7 @@ class ClanBattle(commands.Cog):
             if not player_data.carry_over_list:
                 return await ctx.send("持ち越しを持っていません。")
             co_index = 0
+            await ctx.send(f"持ち越し時間{time}秒を設定します。")
             if len(player_data.carry_over_list) > 1:
                 co_index = await select_from_list(
                     self.bot, ctx.channel, ctx.author, player_data.carry_over_list,
@@ -445,7 +447,7 @@ class ClanBattle(commands.Cog):
 
             player_data.carry_over_list[co_index].carry_over_time = time
             await self._update_remain_attack_message(clan_data)
-            return await ctx.send("持ち越し時間の登録が完了しました")
+            await ctx.channel.send("持ち越し時間の設定が完了しました。")
         else:
             return await ctx.send(f"{ctx.author.display_name}さんは凸管理対象ではありません。")
 
@@ -668,7 +670,6 @@ class ClanBattle(commands.Cog):
             )
         )
 
-        attack_status.attacked = True
         if attack_status.attack_type is AttackType.CARRYOVER:
             carry_over_index = 0
             if len(attack_status.player_data.carry_over_list) > 1:
@@ -681,11 +682,15 @@ class ClanBattle(commands.Cog):
                         f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
                     )
                 except TimeoutError:
+                    del attack_status.player_data.log[-1]
                     return
             SQLiteUtil.delete_carryover_data(clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
             del attack_status.player_data.carry_over_list[carry_over_index]
         else:
             attack_status.update_attack_log()
+
+        attack_status.attacked = True
+
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
         SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
         await self._update_progress_message(clan_data, boss_index)
@@ -761,6 +766,7 @@ class ClanBattle(commands.Cog):
         """予約状況を表示するためのメッセージを作成する"""
         resreve_message_title = f"**{ClanBattleData.boss_names[boss_index]}** の 予約状況"
         reserve_message_list = []
+        clan_data.reserve_list[boss_index].sort(key=lambda x: x.damage, reverse=True)
         for reserve_data in clan_data.reserve_list[boss_index]:
             user = guild.get_member(reserve_data.player_data.user_id)
             reserve_message_list.append(reserve_data.create_reserve_txt(user.display_name))
@@ -934,7 +940,7 @@ class ClanBattle(commands.Cog):
             return
 
         ws_titles = await get_worksheet_list(clan_data.form_data.sheet_url)
-        candidate_words = ["フォームの回答 1", "第 1 张表单回复"]
+        candidate_words = ["フォームの回答 1", "第 1 张表单回复", "フォームの回答"]
         for candidate_word in candidate_words:
             if candidate_word in ws_titles:
                 sheet_data = await get_sheet_values(
@@ -978,6 +984,10 @@ class ClanBattle(commands.Cog):
             return
         
         channel = self.bot.get_channel(payload.channel_id)
+
+        if channel.category is None:
+            return
+
         category_channel_id = channel.category.id
         clan_data = self.clan_data[category_channel_id]
 
@@ -1029,7 +1039,6 @@ class ClanBattle(commands.Cog):
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_ATTACK:
-            await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
@@ -1037,7 +1046,6 @@ class ClanBattle(commands.Cog):
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
-            await self._check_date_update(clan_data)
             for attack_status in clan_data.boss_status_data[boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)

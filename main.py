@@ -19,7 +19,7 @@ INITIAL_EXTENSIONS = [
 class MyBot(commands.Bot):
 
     def __init__(self, command_prefix, intents):
-        super().__init__(command_prefix, intents=intents)
+        super().__init__(command_prefix, intents=intents, help_command=None)
         slash = SlashCommand(self, sync_commands=True)
 
         for cog in INITIAL_EXTENSIONS:
