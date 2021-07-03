@@ -187,7 +187,8 @@ class ClanBattle(commands.Cog):
             [boss_channel.id for boss_channel in boss_channels],
             remain_attack_channel.id,
             reserve_channel.id,
-            command_channel.id
+            command_channel.id,
+            summary_channel.id
         )
         self.clan_data[category.id] = clan_data
         await self._initialize_progress_messages(clan_data)
@@ -637,6 +638,10 @@ class ClanBattle(commands.Cog):
             await progress_message.add_reaction(EMOJI_ATTACK)
             await progress_message.add_reaction(EMOJI_LAST_ATTACK)
             await progress_message.add_reaction(EMOJI_REVERSE)
+
+            summary_channel = self.bot.get_channel(clan_data.summary_channel_id)
+            progress_message = await summary_channel.send(embed=progress_embed)
+            clan_data.summary_message_ids[i] = progress_message.id
             SQLiteUtil.update_boss_status_data(clan_data, i, clan_data.boss_status_data[i])
 
     async def _update_progress_message(self, clan_data: ClanData, boss_idx: int) -> None:
@@ -644,6 +649,11 @@ class ClanBattle(commands.Cog):
         channel = self.bot.get_channel(clan_data.boss_channel_ids[boss_idx])
         progress_message = await channel.fetch_message(clan_data.progress_message_ids[boss_idx])
         progress_embed = self._create_progress_message(clan_data, boss_idx, channel.guild)
+        await progress_message.edit(embed=progress_embed)
+
+        # まとめチャンネルの進行用メッセージを更新する
+        channel = self.bot.get_channel(clan_data.summary_channel_id)
+        progress_message = await channel.fetch_message(clan_data.summary_message_ids[boss_idx])
         await progress_message.edit(embed=progress_embed)
 
     async def _attack_boss(

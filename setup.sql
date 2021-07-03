@@ -21,6 +21,12 @@ create table ClanData (
     boss3_progress_message_id int,
     boss4_progress_message_id int,
     boss5_progress_message_id int,
+    summary_channel_id int,
+    summary_message_1_id int,
+    summary_message_2_id int,
+    summary_message_3_id int,
+    summary_message_4_id int,
+    summary_message_5_id int,
     day date
 );
 
@@ -28,7 +34,8 @@ create table PlayerData (
     category_id int,
     user_id int,
     physics_attack int default 0,
-    magic_attack int default 0
+    magic_attack int default 0,
+    task_kill boolean
 );
 
 create table ReserveData (

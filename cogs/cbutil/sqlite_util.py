@@ -35,6 +35,12 @@ REGISTER_CLANDATA_SQL = """insert into ClanData values (
     :boss3_progress_message_id,
     :boss4_progress_message_id,
     :boss5_progress_message_id,
+    :summary_channel_id,
+    :summary_message_1_id,
+    :summary_message_2_id,
+    :summary_message_3_id,
+    :summary_message_4_id,
+    :summary_message_5_id,
     :day
 )"""
 UPDATE_CLANDATA_SQL = """update ClanData
@@ -51,6 +57,11 @@ UPDATE_CLANDATA_SQL = """update ClanData
         boss3_progress_message_id=?,
         boss4_progress_message_id=?,
         boss5_progress_message_id=?,
+        summary_message_1_id=?,
+        summary_message_2_id=?,
+        summary_message_3_id=?,
+        summary_message_4_id=?,
+        summary_message_5_id=?,
         day=?
     where
         category_id=?"""
@@ -219,6 +230,12 @@ class SQLiteUtil():
             clan_data.progress_message_ids[2],
             clan_data.progress_message_ids[3],
             clan_data.progress_message_ids[4],
+            clan_data.summary_channel_id,
+            clan_data.summary_message_ids[0],
+            clan_data.summary_message_ids[1],
+            clan_data.summary_message_ids[2],
+            clan_data.summary_message_ids[3],
+            clan_data.summary_message_ids[4],
             clan_data.date,
         ))
         con.commit()
@@ -241,6 +258,11 @@ class SQLiteUtil():
             clan_data.progress_message_ids[2],
             clan_data.progress_message_ids[3],
             clan_data.progress_message_ids[4],
+            clan_data.summary_message_ids[0],
+            clan_data.summary_message_ids[1],
+            clan_data.summary_message_ids[2],
+            clan_data.summary_message_ids[3],
+            clan_data.summary_message_ids[4],
             clan_data.date,
             clan_data.category_id,
         ))
@@ -597,13 +619,15 @@ class SQLiteUtil():
                 [row[2], row[3], row[4], row[5], row[6]],
                 row[7],
                 row[8],
-                row[9]
+                row[9],
+                row[22]
             )
             clan_data.lap = row[10]
             clan_data.reserve_message_ids = [row[11], row[12], row[13], row[14], row[15]]
             clan_data.remain_attack_message_id = row[16]
             clan_data.progress_message_ids = [row[17], row[18], row[19], row[20], row[21]]
-            clan_data.date = row[22]
+            clan_data.summary_message_ids = [row[23], row[24], row[25], row[26], row[27]]
+            clan_data.date = row[28]
             clan_data_dict[clan_data.category_id] = clan_data
 
         for row in cur.execute("select * from PlayerData"):

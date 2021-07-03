@@ -16,7 +16,8 @@ class ClanData():
         boss_channel_ids: List[int],
         remain_attack_channel_id: int,
         reserve_channel_id: int,
-        command_channel_id: int
+        command_channel_id: int,
+        summary_channel_id: int
     ) -> None:
         self.guild_id: int = guild_id
         self.category_id: int = category_id
@@ -38,6 +39,9 @@ class ClanData():
 
         self.date: str = (datetime.datetime.now(JST) - datetime.timedelta(hours=5)).date()
         self.form_data = FormData()
+
+        self.summary_channel_id: int = summary_channel_id
+        self.summary_message_ids: List[int] = [0, 0, 0, 0, 0]
 
     def initialize_boss_status_data(self):
         self.boss_status_data = [BossStatusData(self.lap, i) for i in range(5)]
