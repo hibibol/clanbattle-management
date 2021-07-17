@@ -1,19 +1,11 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from cogs.cbutil.attack_type import AttackType
 from cogs.cbutil.clan_battle_data import ClanBattleData
 from cogs.cbutil.player_data import PlayerData
 from cogs.cbutil.util import calc_carry_over_time
 from setting import JST
-
-
-class BossStatusData():
-    def __init__(self, lap: int, boss_index: int) -> None:
-        self.lap: int = lap
-        self.max_hp: int = ClanBattleData.get_hp(lap, boss_index)
-        self.attack_players: List[AttackStatus] = []
-        self.beated = False
 
 
 class AttackStatus():
@@ -46,3 +38,18 @@ class AttackStatus():
                 self.player_data.magic_attack += 1
             else:
                 self.player_data.physics_attack += 1
+
+
+class BossStatusData():
+    def __init__(self, lap: int, boss_index: int) -> None:
+        self.lap: int = lap
+        self.max_hp: int = ClanBattleData.get_hp(lap, boss_index)
+        self.attack_players: List[AttackStatus] = []
+        self.beated: bool = False
+
+    def get_attack_status_index(self, player_data: PlayerData, attacked: bool) -> Optional[int]:
+        """後ろから探してplayer_dataが同じ値を持ってるattack_statusのindexを返す"""
+        for i, attack_status in enumerate(self.attack_players[::-1]):
+            if attack_status.player_data == player_data and attack_status.attacked == attacked:
+                return len(self.attack_players) - 1 - i
+        return False

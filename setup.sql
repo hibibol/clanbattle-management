@@ -9,24 +9,13 @@ create table ClanData (
     remain_attack_channel_id int,
     reserve_channel_id int,
     command_channel_id int,
-    lap int,
     boss1_reserve_message_id int,
     boss2_reserve_message_id int,
     boss3_reserve_message_id int,
     boss4_reserve_message_id int,
     boss5_reserve_message_id int,
     remain_attack_message_id int,
-    boss1_progress_message_id int,
-    boss2_progress_message_id int,
-    boss3_progress_message_id int,
-    boss4_progress_message_id int,
-    boss5_progress_message_id int,
     summary_channel_id int,
-    summary_message_1_id int,
-    summary_message_2_id int,
-    summary_message_3_id int,
-    summary_message_4_id int,
-    summary_message_5_id int,
     day date
 );
 
@@ -84,3 +73,23 @@ create table FormData (
     discord_id_entry varchar,
     created datetime
 );
+
+create table ProgressMessageIdData (
+    category_id int,
+    lap int,
+    boss1 int,
+    boss2 int,
+    boss3 int,
+    boss4 int,
+    boss5 int
+)
+
+create table SummaryMessageIdData (
+    category_id int,
+    lap int,
+    boss1 int,
+    boss2 int,
+    boss3 int,
+    boss4 int,
+    boss5 int
+)
