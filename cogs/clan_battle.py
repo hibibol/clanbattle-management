@@ -250,6 +250,12 @@ class ClanBattle(commands.Cog):
                 ]
             ),
             create_option(
+                name="lap",
+                description="周回数 (指定がない場合は今現在のボスが指定されます)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            ),
+            create_option(
                 name="boss_number",
                 description="ボス番号 (各ボスの進行用チャンネルで実行する場合は指定する必要がありません)",
                 option_type=SlashCommandOptionType.INTEGER,
@@ -257,29 +263,16 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def attack_declare(self, ctx: SlashContext, member: discord.User, attack_type: str, boss_number: Optional[int] = None):
+    async def attack_declare(self, ctx: SlashContext, member: discord.User, attack_type: str, lap: Optional[int] = None, boss_number: Optional[int] = None):
         """コマンドで凸宣言を実施した時の処理を行う"""
-        clan_data = self.clan_data[ctx.channel.category_id]
-        if clan_data is None:
-            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+        checked = await self.check_command_arguments(ctx, member, lap, boss_number)
+        if not checked:
             return
+        clan_data, player_data, lap, boss_index = checked
+
         attack_type_v = ATTACK_TYPE_DICT_FOR_COMMAND.get(attack_type)
-
-        if not boss_number:
-            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
-            if boss_index is None:
-                return await ctx.send("ボス番号を指定してください")
-        elif not (0 < boss_number < 6):
-            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
-        else:
-            boss_index = boss_number - 1
-
-        player_data = clan_data.player_data_dict.get(member.id)
-        if not player_data:
-            return await ctx.send(f"{member.display_name}は凸管理のメンバーに指定されていません。")
-
-        await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{boss_index+1}ボスに宣言します")
-        await self._attack_declare(clan_data, player_data, attack_type_v, boss_index)
+        await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{lap}週目{boss_index+1}ボスに宣言します")
+        await self._attack_declare(clan_data, player_data, attack_type_v, lap, boss_index)
 
     @cog_ext.cog_slash(
         description="ボスに凸した時の処理を実施します。",
@@ -290,6 +283,12 @@ class ClanBattle(commands.Cog):
                 description="処理対象のメンバー(メンションで指定)",
                 option_type=SlashCommandOptionType.USER,
                 required=True
+            ),
+            create_option(
+                name="lap",
+                description="周回数 (指定がない場合は今現在のボスが指定されます)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
             ),
             create_option(
                 name="boss_number",
@@ -305,37 +304,31 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def attack_fin(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int] = None, damage: Optional[int] = None):
+    async def attack_fin(
+        self, ctx: SlashContext,
+        member: discord.User,
+        lap: Optional[int] = None,
+        boss_number: Optional[int] = None,
+        damage: Optional[int] = None
+    ):
         """ボスに凸した時の処理を実施する"""
-        clan_data = self.clan_data[ctx.channel.category_id]
-        if clan_data is None:
-            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+        cheked = await self.check_command_arguments(ctx, member, lap, boss_number)
+        if not cheked:
             return
+        clan_data, player_data, lap, boss_index = cheked
 
-        if not boss_number:
-            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
-            if boss_index is None:
-                return await ctx.send("ボス番号を指定してください")
-        elif not (0 < boss_number < 6):
-            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
-        else:
-            boss_index = boss_number - 1
+        await ctx.send(content=f"{member.display_name}の凸を{lap}週目{boss_index+1}ボスに消化します")
 
-        await ctx.send(content=f"{member.display_name}の凸を{boss_index+1}ボスに消化します")
-
-        attack_status_index = -1
-        for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
-            if not attack_status.attacked and attack_status.player_data.user_id == member.id:
-                attack_status_index = i
-                break
-        if attack_status_index == -1:
+        boss_status_data = clan_data.boss_status_data[lap][boss_index]
+        attack_status_index = boss_status_data.get_attack_status_index(player_data, False)
+        if attack_status_index is None:
             return await ctx.send("凸宣言がされていません。処理を中断します。")
-        attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_status_index]
+        attack_status = boss_status_data.attack_players[attack_status_index]
         if damage:
             attack_status.damage = damage
-        await self._attack_boss(attack_status, clan_data, boss_index, ctx.channel, ctx.author)
+        await self._attack_boss(attack_status, clan_data, lap, boss_index, ctx.channel, ctx.author)
         # return ctx.channel.send("処理が完了しました。")
-
+    
     @cog_ext.cog_slash(
         description="ボスを討伐した時の処理を実施します。",
         guild_ids=GUILD_IDS,
@@ -347,6 +340,12 @@ class ClanBattle(commands.Cog):
                 required=True
             ),
             create_option(
+                name="lap",
+                description="周回数 (指定がない場合は今現在のボスが指定されます)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            ),
+            create_option(
                 name="boss_number",
                 description="ボス番号 (各ボスの進行用チャンネルで実行する場合は指定する必要がありません)",
                 option_type=SlashCommandOptionType.INTEGER,
@@ -354,33 +353,21 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def defeat_boss(self, ctx: SlashContext, member: discord.User, boss_number: Optional[int] = None):
+    async def defeat_boss(self, ctx: SlashContext, member: discord.User, lap: Optional[int] = None, boss_number: Optional[int] = None):
         """コマンドからボスを討伐した時の処理を実施する。"""
-        clan_data = self.clan_data[ctx.channel.category_id]
-        if clan_data is None:
-            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+        checked = await self.check_command_arguments(ctx, member, lap, boss_number)
+        if not checked:
             return
-
-        if not boss_number:
-            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel.id)
-            if boss_index is None:
-                return await ctx.send("ボス番号を指定してください")
-        elif not (0 < boss_number < 6):
-            return await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
-        else:
-            boss_index = boss_number - 1
+        clan_data, player_data, lap, boss_index = checked
 
         await ctx.send(content=f"{member.display_name}の凸で{boss_index+1}ボスを討伐します")
 
-        attack_status_index = -1
-        for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
-            if not attack_status.attacked and attack_status.player_data.user_id == member.id:
-                attack_status_index = i
-                break
-        if attack_status_index == -1:
+        boss_status_data = clan_data.boss_status_data[lap][boss_index]
+        attack_status_index = boss_status_data.get_attack_status_index(player_data, False)
+        if attack_status_index is None:
             return await ctx.send("凸宣言がされていません。処理を中断します。")
-        attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_status_index]
-        await self._last_attack_boss(attack_status, clan_data, boss_index, ctx.channel, ctx.author)
+        attack_status = boss_status_data.attack_players[attack_status_index]
+        await self._last_attack_boss(attack_status, clan_data, boss_index, lap, ctx.channel, ctx.author)
         # return ctx.channel.send("処理が完了しました。")
 
     @cog_ext.cog_slash(
@@ -1227,6 +1214,42 @@ class ClanBattle(commands.Cog):
             await self._update_remain_attack_message(clan_data)
             SQLiteUtil.update_playerdata(clan_data, player_data)
 
+    async def check_command_arguments(
+        self, ctx: SlashContext,
+        member: discord.User,
+        lap: Optional[int] = None,
+        boss_number: Optional[int] = None
+    ) -> Optional[Tuple[ClanData, PlayerData, int, int]]:
+        """凸宣言などでコマンドを使用する際の引数をチェックする"""
+        clan_data = self.clan_data[ctx.channel.category_id]
+
+        if clan_data is None:
+            await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
+            return
+
+        if not boss_number:
+            boss_index = clan_data.get_boss_index_from_channel_id(ctx.channel_id)
+            if boss_index is None:
+                await ctx.send("ボス番号を指定してください")
+                return
+        elif not (0 < boss_number < 6):
+            await ctx.send("ボス番号が不適です。1から5までの整数を指定してください。")
+            return
+        else:
+            boss_index = boss_number - 1
+
+        latest_lap = clan_data.get_latest_lap(boss_index)
+        if lap is None:
+            lap = latest_lap
+        elif latest_lap < lap:
+            ctx.send("不正な周回数です")
+            return
+
+        player_data = clan_data.player_data_dict.get(member.id)
+        if not player_data:
+            ctx.send(f"{member.display_name}は凸管理対象ではありません。")
+            return
+        return clan_data, player_data, lap, boss_index
 
 def setup(bot):
     bot.add_cog(ClanBattle(bot))  # TestCogにBotを渡してインスタンス化し、Botにコグとして登録する。
