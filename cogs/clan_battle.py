@@ -508,7 +508,7 @@ class ClanBattle(commands.Cog):
         if log_type is OperationType.ATTACK_DECLAR:
             if attack_index := boss_status_data.get_attack_status_index(player_data, False):
                 attack_status = boss_status_data.attack_players[attack_index]
-                SQLiteUtil.delete_attackstatus(clan_data, boss_index, attack_status)
+                SQLiteUtil.delete_attackstatus(clan_data, log_data.lap, boss_index, attack_status)
                 del boss_status_data.attack_players[attack_index]
                 del player_data.log[-1]
                 await self._update_progress_message(clan_data, log_data.lap, boss_index)
@@ -518,7 +518,7 @@ class ClanBattle(commands.Cog):
                 attack_status = boss_status_data.attack_players[attack_index]
                 player_data.from_dict(log_data.player_data)
                 attack_status.attacked = False
-                SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
+                SQLiteUtil.reverse_attackstatus(clan_data, log_data.lap, boss_index, attack_status)
 
                 if log_type is OperationType.LAST_ATTACK:
                     boss_status_data.beated = log_data.beated
@@ -693,7 +693,7 @@ class ClanBattle(commands.Cog):
 
         attack_status.attacked = True
 
-        SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+        SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
         SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
         await self._update_progress_message(clan_data, lap, boss_index)
         await self._update_remain_attack_message(clan_data)
@@ -707,7 +707,7 @@ class ClanBattle(commands.Cog):
         )
         clan_data.boss_status_data[lap][boss_index].attack_players.append(attack_status)
         await self._update_progress_message(clan_data, lap, boss_index)
-        SQLiteUtil.register_attackstatus(clan_data, boss_index, attack_status)
+        SQLiteUtil.register_attackstatus(clan_data, lap, boss_index, attack_status)
         player_data.log.append(LogData(
             OperationType.ATTACK_DECLAR, boss_index
         ))
@@ -768,7 +768,7 @@ class ClanBattle(commands.Cog):
                 SQLiteUtil.register_carryover_data(clan_data, attack_status.player_data, carry_over)
         boss_status_data.beated = True
         await self._update_progress_message(clan_data, lap, boss_index)
-        SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+        SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
         SQLiteUtil.update_boss_status_data(clan_data, boss_index, boss_status_data)
         next_lap = lap + 1
 
@@ -1010,7 +1010,7 @@ class ClanBattle(commands.Cog):
             attack_status = attack_players[attack_status_index]
             attack_status.damage = damage_data[0]
             attack_status.memo = damage_data[1]
-            SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+            SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
         await self._update_progress_message(clan_data, lap, boss_index)
 
     @commands.Cog.listener()
@@ -1088,7 +1088,6 @@ class ClanBattle(commands.Cog):
             for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                     await self._last_attack_boss(attack_status, clan_data, lap, boss_index, channel, user)
-                    SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
                     break
             return await remove_reaction()
         # 押した人が一番最後に登録した予約を削除する

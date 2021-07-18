@@ -40,6 +40,7 @@ create table ReserveData (
 create table AttackStatus (
     category_id int,
     user_id int,
+    lap,
     boss_index int,
     damage int,
     memo varchar,
