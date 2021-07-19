@@ -27,27 +27,65 @@ class ClanData():
         self.command_channel_id: int = command_channel_id
 
         self.player_data_dict: Dict[int, PlayerData] = {}
-        self.lap: int = 1
         self.reserve_list: List[List[ReserveData]] = [
             [], [], [], [], []
         ]
+        self.boss_status_data: Dict[int, List[BossStatusData]] = {}
 
-        self.initialize_boss_status_data()
         self.reserve_message_ids: List[int] = [0, 0, 0, 0, 0]
         self.remain_attack_message_id: int = 0
-        self.progress_message_ids: List[int] = [0, 0, 0, 0, 0]
+        self.progress_message_ids: Dict[int, List[int]] = {}
 
         self.date: str = (datetime.datetime.now(JST) - datetime.timedelta(hours=5)).date()
         self.form_data = FormData()
 
         self.summary_channel_id: int = summary_channel_id
-        self.summary_message_ids: List[int] = [0, 0, 0, 0, 0]
+        self.summary_message_ids: Dict[int, List[int]] = {}
 
-    def initialize_boss_status_data(self):
-        self.boss_status_data = [BossStatusData(self.lap, i) for i in range(5)]
+    def initialize_boss_status_data(self, lap: int):
+        self.boss_status_data[lap] = [
+            BossStatusData(lap, i) for i in range(5)
+        ]
+
+    def get_reserve_boss_index(self, message_id: int) -> Optional[int]:
+        try:
+            return self.reserve_message_ids.index(message_id)
+        except ValueError:
+            return None
 
     def get_boss_index_from_channel_id(self, channel_id: int) -> Optional[int]:
         try:
             return self.boss_channel_ids.index(channel_id)
         except ValueError:
             return None
+
+    def get_lap_from_message_id(
+        self, message_id: int, boss_index: int
+    ) -> Optional[int]:
+        """reaction時のmessage_idから周回数を取り出す
+
+        Arguments:
+        --------
+        message_id: int
+            reaction時のメッセージID
+        boss_index: int
+            ボスに対応したインデックス
+
+        Returns
+        -------
+        lap: int
+            周回数
+        """
+        for key in self.progress_message_ids.keys():
+            if message_id == self.progress_message_ids[key][boss_index]:
+                return key
+        return None
+
+    def get_latest_lap(self, boss_index: Optional[int] = None) -> int:
+        """最新の周回数を取得する"""
+        lap = max(self.progress_message_ids.keys())
+        if boss_index is None:
+            return lap
+        if self.progress_message_ids[lap][boss_index] == 0:
+            lap -= 1
+        return lap

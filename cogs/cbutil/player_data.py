@@ -40,6 +40,7 @@ class PlayerData():
         self.carry_over_list = []
         self.task_kill = False
         self.raw_limit_time_text = ""
+        self.log = []
 
     def create_txt(self, display_name: str) -> str:
         """残凸表示時のメッセージを作成する"""

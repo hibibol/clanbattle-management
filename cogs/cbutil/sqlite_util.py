@@ -23,45 +23,23 @@ REGISTER_CLANDATA_SQL = """insert into ClanData values (
     :remain_attack_channel_id,
     :reserve_channel_id,
     :command_channel_id,
-    :lap,
     :boss1_reserve_message_id,
     :boss2_reserve_message_id,
     :boss3_reserve_message_id,
     :boss4_reserve_message_id,
     :boss5_reserve_message_id,
     :remain_attack_message_id,
-    :boss1_progress_message_id,
-    :boss2_progress_message_id,
-    :boss3_progress_message_id,
-    :boss4_progress_message_id,
-    :boss5_progress_message_id,
     :summary_channel_id,
-    :summary_message_1_id,
-    :summary_message_2_id,
-    :summary_message_3_id,
-    :summary_message_4_id,
-    :summary_message_5_id,
     :day
 )"""
 UPDATE_CLANDATA_SQL = """update ClanData
     set
-        lap=?,
         boss1_reserve_message_id=?,
         boss2_reserve_message_id=?,
         boss3_reserve_message_id=?,
         boss4_reserve_message_id=?,
         boss5_reserve_message_id=?,
         remain_attack_message_id=?,
-        boss1_progress_message_id=?,
-        boss2_progress_message_id=?,
-        boss3_progress_message_id=?,
-        boss4_progress_message_id=?,
-        boss5_progress_message_id=?,
-        summary_message_1_id=?,
-        summary_message_2_id=?,
-        summary_message_3_id=?,
-        summary_message_4_id=?,
-        summary_message_5_id=?,
         day=?
     where
         category_id=?"""
@@ -119,6 +97,7 @@ where
 REGISTER_ATTACKSTATUS_SQL = """insert into AttackStatus values (
     :category_id,
     :user_id,
+    :lap,
     :boss_index,
     :damage,
     :memo,
@@ -134,16 +113,16 @@ UPDATE_ATTACKSTATUS_SQL = """update AttackStatus
         attacked=?,
         attack_type=?
     where
-        category_id=? and user_id=? and boss_index=? and attacked='FALSE'"""
+        category_id=? and user_id=? and lap=? and boss_index=? and attacked='FALSE'"""
 REVERSE_ATTACKSTATUS_SQL = """update AttackStatus
     set
         attacked='FALSE'
     where
-        category_id=? and user_id=? and boss_index=? and created=?
+        category_id=? and user_id=? and lap=? and boss_index=? and created=?
 """
 DELETE_ATTACKSTATUS_SQL = """delete from AttackStatus
     where
-        category_id=? and user_id=? and boss_index=? and attacked='FALSE'"""
+        category_id=? and user_id=? and lap=? and boss_index=? and attacked='FALSE'"""
 REGISTER_BOSS_STATUS_DATA_SQL = """insert into BossStatusData values (
     :category_id,
     :boss_index,
@@ -152,10 +131,9 @@ REGISTER_BOSS_STATUS_DATA_SQL = """insert into BossStatusData values (
 )"""
 UPDATE_BOSS_STATUS_DATA_SQL = """update BossStatusData
     set
-        lap=?,
         beated=?
     where
-        category_id=? and boss_index=?
+        category_id=? and boss_index=? and lap=?
 """
 DELETE_BOSS_STATUS_DATA_SQL = """delete from BossStatusData
 where
@@ -199,6 +177,58 @@ UPDATE_FORMDATA_SQL = """update FormData
         created=?
     where
         category_id=?"""
+REGISTER_PROGRESS_MESSAGEID_DATA = """
+insert into ProgressMessageIdData values (
+    :category_id,
+    :lap,
+    :boss1,
+    :boss2,
+    :boss3,
+    :boss4,
+    :boss5
+)"""
+UPDATE_PROGRESS_MESSAGEID_DATA = """
+update ProgressMessageIdData
+    set
+        boss1=?,
+        boss2=?,
+        boss3=?,
+        boss4=?,
+        boss5=?
+    where
+        category_id=? and lap=?"""
+REGISTER_SUMMARY_MESSAGEID_DATA = """
+insert into SummaryMessageIdData values (
+    :category_id,
+    :lap,
+    :boss1,
+    :boss2,
+    :boss3,
+    :boss4,
+    :boss5
+)"""
+UPDATE_SUMMARY_MESSAGE_DATA = """
+update SummaryMessageIdData
+    set
+        boss1=?,
+        boss2=?,
+        boss3=?,
+        boss4=?,
+        boss5=?
+    where
+        category_id=? and lap=?"""
+DELETE_OLD_SUMMARY_MESSAGE_DATA = """DELETE FROM SummaryMessageIdData
+where
+    category_id=? and lap<?"""
+DELETE_OLD_PROGRESS_MESSAGE_DATA = """DELETE FROM ProgressMessageIdData
+where
+    category_id=? and lap<?"""
+DELETE_OLD_ATTACK_STATUS_DATA = """DELETE FROM AttackStatus
+where
+    category_id=? and lap<?"""
+DELETE_OLD_BOSS_STATUS_DATA = """DELETE FROM BossStatusData
+where
+    category_id=? and lap<?"""
 
 class SQLiteUtil():
     con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -218,24 +248,13 @@ class SQLiteUtil():
             clan_data.remain_attack_channel_id,
             clan_data.reserve_channel_id,
             clan_data.command_channel_id,
-            clan_data.lap,
             clan_data.reserve_message_ids[0],
             clan_data.reserve_message_ids[1],
             clan_data.reserve_message_ids[2],
             clan_data.reserve_message_ids[3],
             clan_data.reserve_message_ids[4],
             clan_data.remain_attack_message_id,
-            clan_data.progress_message_ids[0],
-            clan_data.progress_message_ids[1],
-            clan_data.progress_message_ids[2],
-            clan_data.progress_message_ids[3],
-            clan_data.progress_message_ids[4],
             clan_data.summary_channel_id,
-            clan_data.summary_message_ids[0],
-            clan_data.summary_message_ids[1],
-            clan_data.summary_message_ids[2],
-            clan_data.summary_message_ids[3],
-            clan_data.summary_message_ids[4],
             clan_data.date,
         ))
         con.commit()
@@ -246,23 +265,12 @@ class SQLiteUtil():
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(UPDATE_CLANDATA_SQL, (
-            clan_data.lap,
             clan_data.reserve_message_ids[0],
             clan_data.reserve_message_ids[1],
             clan_data.reserve_message_ids[2],
             clan_data.reserve_message_ids[3],
             clan_data.reserve_message_ids[4],
             clan_data.remain_attack_message_id,
-            clan_data.progress_message_ids[0],
-            clan_data.progress_message_ids[1],
-            clan_data.progress_message_ids[2],
-            clan_data.progress_message_ids[3],
-            clan_data.progress_message_ids[4],
-            clan_data.summary_message_ids[0],
-            clan_data.summary_message_ids[1],
-            clan_data.summary_message_ids[2],
-            clan_data.summary_message_ids[3],
-            clan_data.summary_message_ids[4],
             clan_data.date,
             clan_data.category_id,
         ))
@@ -381,12 +389,13 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
-    def register_attackstatus(clan_data: ClanData, boss_index: int, attack_status: AttackStatus):
+    def register_attackstatus(clan_data: ClanData, lap: int, boss_index: int, attack_status: AttackStatus):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(REGISTER_ATTACKSTATUS_SQL, (
             clan_data.category_id,
             attack_status.player_data.user_id,
+            lap,
             boss_index,
             attack_status.damage,
             attack_status.memo,
@@ -399,7 +408,7 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
-    def update_attackstatus(clan_data: ClanData, boss_index: int, attack_status: AttackStatus):
+    def update_attackstatus(clan_data: ClanData, lap: int, boss_index: int, attack_status: AttackStatus):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(UPDATE_ATTACKSTATUS_SQL, (
@@ -409,30 +418,33 @@ class SQLiteUtil():
             attack_status.attack_type.value,
             clan_data.category_id,
             attack_status.player_data.user_id,
+            lap,
             boss_index,
         ))
         con.commit()
         con.close()
 
     @staticmethod
-    def delete_attackstatus(clan_data: ClanData, boss_index: int, attack_status: AttackStatus):
+    def delete_attackstatus(clan_data: ClanData, lap: int, boss_index: int, attack_status: AttackStatus):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(DELETE_ATTACKSTATUS_SQL, (
             clan_data.category_id,
             attack_status.player_data.user_id,
+            lap,
             boss_index,
         ))
         con.commit()
         con.close()
 
     @staticmethod
-    def reverse_attackstatus(clan_data: ClanData, boss_index: int, attack_status: AttackStatus):
+    def reverse_attackstatus(clan_data: ClanData, lap: int, boss_index: int, attack_status: AttackStatus):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(REVERSE_ATTACKSTATUS_SQL, (
             clan_data.category_id,
             attack_status.player_data.user_id,
+            lap,
             boss_index,
             attack_status.created
         ))
@@ -460,12 +472,12 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
-    def register_all_boss_status_data(clan_data: ClanData):
+    def register_all_boss_status_data(clan_data: ClanData, lap: int):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         records = [
-            (clan_data.category_id, i, boss_status_data.lap, boss_status_data.beated)
-            for i, boss_status_data in enumerate(clan_data.boss_status_data)]
+            (clan_data.category_id, i, lap, boss_status_data.beated)
+            for i, boss_status_data in enumerate(clan_data.boss_status_data[lap])]
         cur.executemany(REGISTER_BOSS_STATUS_DATA_SQL, records)
         con.commit()
         con.close()
@@ -475,10 +487,10 @@ class SQLiteUtil():
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         cur.execute(UPDATE_BOSS_STATUS_DATA_SQL, (
-            boss_status_data.lap,
             boss_status_data.beated,
             clan_data.category_id,
             boss_index,
+            boss_status_data.lap,
         ))
         con.commit()
         con.close()
@@ -608,26 +620,115 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
+    def register_progress_message_id(clan_data: ClanData, lap: int):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        ids_list = clan_data.progress_message_ids[lap]
+        cur.execute(REGISTER_PROGRESS_MESSAGEID_DATA, (
+            clan_data.category_id,
+            lap,
+            ids_list[0],
+            ids_list[1],
+            ids_list[2],
+            ids_list[3],
+            ids_list[4],
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def update_progress_message_id(clan_data: ClanData, lap: int):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        ids_list = clan_data.progress_message_ids[lap]
+        cur.execute(UPDATE_PROGRESS_MESSAGEID_DATA, (
+            ids_list[0],
+            ids_list[1],
+            ids_list[2],
+            ids_list[3],
+            ids_list[4],
+            clan_data.category_id,
+            lap,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def register_summary_message_id(clan_data: ClanData, lap: int):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        ids_list = clan_data.summary_message_ids[lap]
+        cur.execute(REGISTER_SUMMARY_MESSAGEID_DATA, (
+            clan_data.category_id,
+            lap,
+            ids_list[0],
+            ids_list[1],
+            ids_list[2],
+            ids_list[3],
+            ids_list[4],
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def update_summary_message_id(clan_data: ClanData, lap: int):
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        ids_list = clan_data.summary_message_ids[lap]
+        cur.execute(UPDATE_SUMMARY_MESSAGE_DATA, (
+            ids_list[0],
+            ids_list[1],
+            ids_list[2],
+            ids_list[3],
+            ids_list[4],
+            clan_data.category_id,
+            lap,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def delete_old_data(clan_data: ClanData, lap: int):
+        """日付更新時に古いデータを削除する"""
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(DELETE_OLD_BOSS_STATUS_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_ATTACK_STATUS_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_PROGRESS_MESSAGE_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_SUMMARY_MESSAGE_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
     def load_clandata_dict() -> DefaultDict[int, ClanData]:
         clan_data_dict: DefaultDict[int, Optional[ClanData]] = defaultdict(lambda: None)
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         for row in cur.execute("select * from ClanData"):
             clan_data = ClanData(
-                row[0],
-                row[1],
-                [row[2], row[3], row[4], row[5], row[6]],
-                row[7],
-                row[8],
-                row[9],
-                row[22]
+                guild_id=row[0],
+                category_id=row[1],
+                boss_channel_ids=[row[2], row[3], row[4], row[5], row[6]],
+                remain_attack_channel_id=row[7],
+                reserve_channel_id=row[8],
+                command_channel_id=row[9],
+                summary_channel_id=row[16]
             )
-            clan_data.lap = row[10]
-            clan_data.reserve_message_ids = [row[11], row[12], row[13], row[14], row[15]]
-            clan_data.remain_attack_message_id = row[16]
-            clan_data.progress_message_ids = [row[17], row[18], row[19], row[20], row[21]]
-            clan_data.summary_message_ids = [row[23], row[24], row[25], row[26], row[27]]
-            clan_data.date = row[28]
+            clan_data.reserve_message_ids = list(row[10:15])
+            clan_data.remain_attack_message_id = row[15]
+            clan_data.date = row[17]
             clan_data_dict[clan_data.category_id] = clan_data
 
         for row in cur.execute("select * from PlayerData"):
@@ -656,23 +757,25 @@ class SQLiteUtil():
                 continue
             boss_status_data = BossStatusData(row[2], row[1])
             boss_status_data.beated = row[3]
-            clan_data.boss_status_data[row[1]] = boss_status_data
+            if boss_status_data.lap not in clan_data.boss_status_data.keys():
+                clan_data.initialize_boss_status_data(boss_status_data.lap)
+            clan_data.boss_status_data[boss_status_data.lap][row[1]] = boss_status_data
 
         for row in cur.execute("select * from AttackStatus"):
             clan_data = clan_data_dict[row[0]]
             if not clan_data:
                 continue
             player_data = clan_data.player_data_dict[row[1]]
-            boss_status_data = clan_data.boss_status_data[row[2]]
+            boss_status_data = clan_data.boss_status_data[row[2]][row[3]]
             attack_status = AttackStatus(
                 player_data,
-                ATTACK_TYPE_DICT[row[6]],
-                row[7]
+                ATTACK_TYPE_DICT[row[7]],
+                row[8]
             )
-            attack_status.damage = row[3]
-            attack_status.memo = row[4]
-            attack_status.attacked = row[5]
-            attack_status.created = row[8].astimezone(JST)
+            attack_status.damage = row[4]
+            attack_status.memo = row[5]
+            attack_status.attacked = row[6]
+            attack_status.created = row[9].astimezone(JST)
             boss_status_data.attack_players.append(attack_status)
 
         for row in cur.execute("select * from CarryOver"):
@@ -696,5 +799,16 @@ class SQLiteUtil():
             clan_data.form_data.name_entry = row[3]
             clan_data.form_data.discord_id_entry = row[4]
             clan_data.form_data.created = row[5].astimezone(JST)
+
+        for row in cur.execute("select * from ProgressMessageIdData"):
+            if (clan_data := clan_data_dict[row[0]]) is None:
+                continue
+            clan_data.progress_message_ids[row[1]] = list(row[2:7])
+        
+        for row in cur.execute("select * from SummaryMessageIdData"):
+            if (clan_data := clan_data_dict[row[0]]) is None:
+                continue
+            clan_data.summary_message_ids[row[1]] = list(row[2:7])
+        
         con.close()
         return clan_data_dict
