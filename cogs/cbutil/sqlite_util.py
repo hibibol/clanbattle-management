@@ -472,12 +472,12 @@ class SQLiteUtil():
         con.close()
 
     @staticmethod
-    def register_all_boss_status_data(clan_data: ClanData):
+    def register_all_boss_status_data(clan_data: ClanData, lap: int):
         con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         cur = con.cursor()
         records = [
-            (clan_data.category_id, i, boss_status_data.lap, boss_status_data.beated)
-            for i, boss_status_data in enumerate(clan_data.boss_status_data)]
+            (clan_data.category_id, i, lap, boss_status_data.beated)
+            for i, boss_status_data in enumerate(clan_data.boss_status_data[lap])]
         cur.executemany(REGISTER_BOSS_STATUS_DATA_SQL, records)
         con.commit()
         con.close()

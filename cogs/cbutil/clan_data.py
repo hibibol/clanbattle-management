@@ -81,9 +81,11 @@ class ClanData():
                 return key
         return None
 
-    def get_latest_lap(self, boss_index) -> int:
+    def get_latest_lap(self, boss_index: Optional[int] = None) -> int:
         """最新の周回数を取得する"""
         lap = max(self.progress_message_ids.keys())
+        if boss_index is None:
+            return lap
         if self.progress_message_ids[lap][boss_index] == 0:
             lap -= 1
         return lap

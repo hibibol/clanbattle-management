@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 import discord
 from discord import colour
-from discord.channel import TextChannel
+from discord.channel import CategoryChannel, TextChannel
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 from discord_slash import cog_ext
@@ -189,6 +189,7 @@ class ClanBattle(commands.Cog):
             command_channel.id,
             summary_channel.id
         )
+        logger.info(f"New ClanData is created: guild={ctx.guild.name}")
         self.clan_data[category.id] = clan_data
         await self._initialize_progress_messages(clan_data, 1)
         await self._initialize_reserve_message(clan_data)
@@ -215,6 +216,9 @@ class ClanBattle(commands.Cog):
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
         await ctx.send(content=f"周回数を{lap}に設定します")
+        clan_data.summary_message_ids = {}
+        # ボス状態に関するすべてのデータを削除する
+        SQLiteUtil.delete_old_data(clan_data, 999)
         await self._initialize_progress_messages(clan_data, lap)
         await self._update_remain_attack_message(clan_data)
         SQLiteUtil.update_clandata(clan_data)
@@ -506,7 +510,7 @@ class ClanBattle(commands.Cog):
         log_type = log_data.operation_type
         boss_status_data = clan_data.boss_status_data[log_data.lap][boss_index]
         if log_type is OperationType.ATTACK_DECLAR:
-            if attack_index := boss_status_data.get_attack_status_index(player_data, False):
+            if (attack_index := boss_status_data.get_attack_status_index(player_data, False)) is not None:
                 attack_status = boss_status_data.attack_players[attack_index]
                 SQLiteUtil.delete_attackstatus(clan_data, log_data.lap, boss_index, attack_status)
                 del boss_status_data.attack_players[attack_index]
@@ -514,12 +518,11 @@ class ClanBattle(commands.Cog):
                 await self._update_progress_message(clan_data, log_data.lap, boss_index)
         
         if log_type is OperationType.ATTACK or log_type is OperationType.LAST_ATTACK:
-            if attack_index := boss_status_data.get_attack_status_index(player_data, True):
+            if (attack_index := boss_status_data.get_attack_status_index(player_data, True)) is not None:
                 attack_status = boss_status_data.attack_players[attack_index]
                 player_data.from_dict(log_data.player_data)
                 attack_status.attacked = False
                 SQLiteUtil.reverse_attackstatus(clan_data, log_data.lap, boss_index, attack_status)
-
                 if log_type is OperationType.LAST_ATTACK:
                     boss_status_data.beated = log_data.beated
                     SQLiteUtil.update_boss_status_data(clan_data, boss_index, boss_status_data)
@@ -581,12 +584,12 @@ class ClanBattle(commands.Cog):
                 user = guild.get_member(attack_status.player_data.user_id)
                 attack_list.append(attack_status.create_attack_status_txt(user.display_name, current_hp))
                 total_damage += attack_status.damage
-        progress_title = f"[{clan_data.lap}週目] {ClanBattleData.boss_names[boss_index]}"
+        progress_title = f"[{lap}週目] {ClanBattleData.boss_names[boss_index]}"
         if boss_status_data.beated:
             progress_title += " **討伐済み**"
         else:
             progress_title += f" {'{:,}'.format(current_hp)}万/{'{:,}'.format(boss_status_data.max_hp)}万"\
-                " 合計 {'{:,}'.format(total_damage)}万"
+                f" 合計 {'{:,}'.format(total_damage)}万"
 
         progress_description = "\n".join(attacked_list) + "\n" + "\n".join(attack_list)
         pr_embed = discord.Embed(
@@ -603,7 +606,7 @@ class ClanBattle(commands.Cog):
         clan_data.progress_message_ids[lap] = [0, 0, 0, 0, 0]
         clan_data.initialize_boss_status_data(lap)
         SQLiteUtil.register_progress_message_id(clan_data, lap)
-        SQLiteUtil.register_all_boss_status_data(clan_data)
+        SQLiteUtil.register_all_boss_status_data(clan_data, lap)
         for i in range(5):
             await self._send_new_progress_message(clan_data, lap, i)
 
@@ -617,21 +620,22 @@ class ClanBattle(commands.Cog):
         progress_embed = self._create_progress_message(clan_data, lap, boss_index, guild)
         progress_message: discord.Message = await channel.send(embed=progress_embed)
         clan_data.progress_message_ids[lap][boss_index] = progress_message.id
-
         await progress_message.add_reaction(EMOJI_PHYSICS)
         await progress_message.add_reaction(EMOJI_MAGIC)
         await progress_message.add_reaction(EMOJI_CARRYOVER)
         await progress_message.add_reaction(EMOJI_ATTACK)
         await progress_message.add_reaction(EMOJI_LAST_ATTACK)
         await progress_message.add_reaction(EMOJI_REVERSE)
+        SQLiteUtil.update_progress_message_id(clan_data, lap)
 
         # まとめ用のメッセージがなければ新しく送信する
         if lap not in clan_data.summary_message_ids:
+            clan_data.summary_message_ids[lap] = [0, 0, 0, 0, 0]
             for i in range(5):
                 progress_embed = self._create_progress_message(clan_data, lap, i, guild)
                 summary_channel = self.bot.get_channel(clan_data.summary_channel_id)
-                progress_message = await summary_channel.send(embed=progress_embed)
-                clan_data.summary_message_ids[lap][i] = progress_message.id
+                sum_progress_message = await summary_channel.send(embed=progress_embed)
+                clan_data.summary_message_ids[lap][i] = sum_progress_message.id
             SQLiteUtil.register_summary_message_id(clan_data, lap)
 
     async def _update_progress_message(self, clan_data: ClanData, lap: int, boss_idx: int) -> None:
@@ -709,7 +713,7 @@ class ClanBattle(commands.Cog):
         await self._update_progress_message(clan_data, lap, boss_index)
         SQLiteUtil.register_attackstatus(clan_data, lap, boss_index, attack_status)
         player_data.log.append(LogData(
-            OperationType.ATTACK_DECLAR, boss_index
+            operation_type=OperationType.ATTACK_DECLAR, lap=lap, boss_index=boss_index
         ))
     
     async def _last_attack_boss(
@@ -777,7 +781,7 @@ class ClanBattle(commands.Cog):
             clan_data.progress_message_ids[next_lap] = [0, 0, 0, 0, 0]
             clan_data.initialize_boss_status_data(next_lap)
             SQLiteUtil.register_progress_message_id(clan_data, next_lap)
-            SQLiteUtil.register_all_boss_status_data(clan_data)
+            SQLiteUtil.register_all_boss_status_data(clan_data, next_lap)
         
         # 進行用のメッセージが送信されていなければ新しく送信する
         if clan_data.progress_message_ids[next_lap][boss_index] == 0:
@@ -865,7 +869,7 @@ class ClanBattle(commands.Cog):
                 inline=False
             )
         embed.set_footer(
-            text=f"{clan_data.lap}週目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
+            text=f"{clan_data.get_latest_lap()}週目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
         )
         return embed
 
@@ -1017,7 +1021,7 @@ class ClanBattle(commands.Cog):
         if damage_data is None:
             return
 
-        if attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(player_data):
+        if (attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(player_data)) is not None:
             attack_status = attack_players[attack_status_index]
             attack_status.damage = damage_data[0]
             attack_status.memo = damage_data[1]

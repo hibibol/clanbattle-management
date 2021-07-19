@@ -40,7 +40,7 @@ create table ReserveData (
 create table AttackStatus (
     category_id int,
     user_id int,
-    lap,
+    lap int,
     boss_index int,
     damage int,
     memo varchar,
@@ -83,7 +83,7 @@ create table ProgressMessageIdData (
     boss3 int,
     boss4 int,
     boss5 int
-)
+);
 
 create table SummaryMessageIdData (
     category_id int,
@@ -93,4 +93,4 @@ create table SummaryMessageIdData (
     boss3 int,
     boss4 int,
     boss5 int
-)
+);
