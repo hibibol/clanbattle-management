@@ -895,6 +895,17 @@ class ClanBattle(commands.Cog):
         ]
         SQLiteUtil.delete_all_reservedata(clan_data)
 
+        # 2週以上の古い周を削除する
+        latest_lap = max(clan_data.boss_status_data.keys())
+        old_laps = list(lap for lap in clan_data.boss_status_data.keys() if latest_lap - 1 > lap)
+
+        for old_lap in old_laps:
+            del clan_data.boss_status_data[old_lap]
+            del clan_data.progress_message_ids[old_lap]
+            del clan_data.summary_message_ids[old_lap]
+
+        SQLiteUtil.delete_old_data(clan_data, latest_lap-1)
+
         if clan_data.form_data.form_url:
             now = datetime.now(JST)
             if ClanBattleData.start_time <= now <= ClanBattleData.end_time:

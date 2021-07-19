@@ -217,7 +217,18 @@ update SummaryMessageIdData
         boss5=?
     where
         category_id=? and lap=?"""
-
+DELETE_OLD_SUMMARY_MESSAGE_DATA = """DELETE FROM SummaryMessageIdData
+where
+    category_id=? and lap<?"""
+DELETE_OLD_PROGRESS_MESSAGE_DATA = """DELETE FROM ProgressMessageIdData
+where
+    category_id=? and lap<?"""
+DELETE_OLD_ATTACK_STATUS_DATA = """DELETE FROM AttackStatus
+where
+    category_id=? and lap<?"""
+DELETE_OLD_BOSS_STATUS_DATA = """DELETE FROM BossStatusData
+where
+    category_id=? and lap<?"""
 
 class SQLiteUtil():
     con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -670,6 +681,30 @@ class SQLiteUtil():
             ids_list[2],
             ids_list[3],
             ids_list[4],
+            clan_data.category_id,
+            lap,
+        ))
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def delete_old_data(clan_data: ClanData, lap: int):
+        """日付更新時に古いデータを削除する"""
+        con = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        cur = con.cursor()
+        cur.execute(DELETE_OLD_BOSS_STATUS_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_ATTACK_STATUS_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_PROGRESS_MESSAGE_DATA, (
+            clan_data.category_id,
+            lap,
+        ))
+        cur.execute(DELETE_OLD_SUMMARY_MESSAGE_DATA, (
             clan_data.category_id,
             lap,
         ))
