@@ -86,6 +86,6 @@ class ClanData():
         lap = max(self.progress_message_ids.keys())
         if boss_index is None:
             return lap
-        if self.progress_message_ids[lap][boss_index] == 0:
+        while self.progress_message_ids[lap][boss_index] == 0:
             lap -= 1
         return lap

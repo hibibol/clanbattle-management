@@ -1021,12 +1021,13 @@ class ClanBattle(commands.Cog):
         if damage_data is None:
             return
 
-        if (attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(player_data)) is not None:
+        if (attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(
+                player_data, False)) is not None:
             attack_status = attack_players[attack_status_index]
             attack_status.damage = damage_data[0]
             attack_status.memo = damage_data[1]
+            await self._update_progress_message(clan_data, lap, boss_index)
             SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
-        await self._update_progress_message(clan_data, lap, boss_index)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
