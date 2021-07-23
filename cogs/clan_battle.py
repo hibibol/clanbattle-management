@@ -47,9 +47,9 @@ class ClanBattle(commands.Cog):
         # bossデータの読み込みが完了するまで待つ
         while not ClanBattleData.boudaries:
             await asyncio.sleep(1)
-        self.ready = True
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
+        self.ready = True
         logger.info("ClanBattle Management Ready!")
 
     @cog_ext.cog_slash(
@@ -587,14 +587,18 @@ class ClanBattle(commands.Cog):
         for attack_status in boss_status_data.attack_players:
             if attack_status.attacked:
                 user = guild.get_member(attack_status.player_data.user_id)
+                if user is None:
+                    continue
                 attacked_list.append(f"(凸済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}")
                 current_hp -= attack_status.damage
         for attack_status in boss_status_data.attack_players:
             if not attack_status.attacked:
                 user = guild.get_member(attack_status.player_data.user_id)
+                if user is None:
+                    continue
                 attack_list.append(attack_status.create_attack_status_txt(user.display_name, current_hp))
                 total_damage += attack_status.damage
-        progress_title = f"[{clan_data.lap}週目] {ClanBattleData.boss_names[boss_index]}"
+        progress_title = f"[{clan_data.lap}周目] {ClanBattleData.boss_names[boss_index]}"
         if boss_status_data.beated:
             progress_title += " **討伐済み**"
         else:
@@ -805,6 +809,8 @@ class ClanBattle(commands.Cog):
         clan_data.reserve_list[boss_index].sort(key=lambda x: x.damage, reverse=True)
         for reserve_data in clan_data.reserve_list[boss_index]:
             user = guild.get_member(reserve_data.player_data.user_id)
+            if user is None:
+                continue
             reserve_message_list.append(reserve_data.create_reserve_txt(user.display_name))
 
         rs_embed = discord.Embed(
@@ -855,6 +861,8 @@ class ClanBattle(commands.Cog):
         guild = self.bot.get_guild(clan_data.guild_id)
         for player_data in clan_data.player_data_dict.values():
             user = guild.get_member(player_data.user_id)
+            if user is None:
+                continue
             txt = "- " + player_data.create_txt(user.display_name)
             sum_attack = player_data.magic_attack + player_data.physics_attack
             sum_remain_attack += 3 - sum_attack
@@ -878,7 +886,7 @@ class ClanBattle(commands.Cog):
                 inline=False
             )
         embed.set_footer(
-            text=f"{clan_data.lap}週目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
+            text=f"{clan_data.lap}周目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
         )
         return embed
 
@@ -1159,7 +1167,7 @@ class ClanBattle(commands.Cog):
             log_index = log_data.boss_index
             log_lap = log_data.lap
             if log_index != boss_index or log_lap != lap:
-                txt = f"<@{payload.user_id}> すでに{log_lap}週目{log_index+1}ボスに凸しています。"\
+                txt = f"<@{payload.user_id}> すでに{log_lap}周目{log_index+1}ボスに凸しています。"\
                     f"先に<#{clan_data.boss_channel_ids[log_index]}>で{EMOJI_REVERSE}を押してください"
                 channel = self.bot.get_channel(payload.channel_id)
                 await channel.send(txt, delete_after=30)
