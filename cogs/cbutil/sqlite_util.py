@@ -769,7 +769,7 @@ class SQLiteUtil():
                 continue
             player_data = clan_data.player_data_dict.get(row[1])
             if not player_data:
-                return
+                continue
             boss_status_data = clan_data.boss_status_data[row[2]][row[3]]
             attack_status = AttackStatus(
                 player_data,
