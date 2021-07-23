@@ -745,6 +745,8 @@ class SQLiteUtil():
             if not clan_data:
                 continue
             player_data = clan_data.player_data_dict[row[2]]
+            if not player_data:
+                continue
             reserve_data = ReserveData(
                 player_data, ATTACK_TYPE_DICT[row[3]],
             )
@@ -765,7 +767,9 @@ class SQLiteUtil():
             clan_data = clan_data_dict[row[0]]
             if not clan_data:
                 continue
-            player_data = clan_data.player_data_dict[row[1]]
+            player_data = clan_data.player_data_dict.get([row[1]])
+            if not player_data:
+                return
             boss_status_data = clan_data.boss_status_data[row[2]][row[3]]
             attack_status = AttackStatus(
                 player_data,
