@@ -357,13 +357,17 @@ class ClanBattle(commands.Cog):
             )
         ]
     )
-    async def defeat_boss(self, ctx: SlashContext, member: discord.User, lap: Optional[int] = None, boss_number: Optional[int] = None):
+    async def defeat_boss(
+        self, ctx: SlashContext,
+        member: discord.User,
+        lap: Optional[int] = None,
+        boss_number: Optional[int] = None
+    ):
         """コマンドからボスを討伐した時の処理を実施する。"""
         checked = await self.check_command_arguments(ctx, member, lap, boss_number)
         if not checked:
             return
         clan_data, player_data, lap, boss_index = checked
-
         await ctx.send(content=f"{member.display_name}の凸で{boss_index+1}ボスを討伐します")
 
         boss_status_data = clan_data.boss_status_data[lap][boss_index]
@@ -371,7 +375,14 @@ class ClanBattle(commands.Cog):
         if attack_status_index is None:
             return await ctx.send("凸宣言がされていません。処理を中断します。")
         attack_status = boss_status_data.attack_players[attack_status_index]
-        await self._last_attack_boss(attack_status, clan_data, boss_index, lap, ctx.channel, ctx.author)
+        await self._last_attack_boss(
+            attack_status=attack_status,
+            clan_data=clan_data,
+            lap=lap,
+            boss_index=boss_index,
+            channel=ctx.channel,
+            user=ctx.author
+        )
         # return ctx.channel.send("処理が完了しました。")
 
     @cog_ext.cog_slash(
