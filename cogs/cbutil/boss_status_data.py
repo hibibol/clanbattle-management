@@ -52,4 +52,4 @@ class BossStatusData():
         for i, attack_status in enumerate(self.attack_players[::-1]):
             if attack_status.player_data == player_data and attack_status.attacked == attacked:
                 return len(self.attack_players) - 1 - i
-        return False
+        return None
