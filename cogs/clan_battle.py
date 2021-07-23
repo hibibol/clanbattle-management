@@ -275,7 +275,7 @@ class ClanBattle(commands.Cog):
         clan_data, player_data, lap, boss_index = checked
 
         attack_type_v = ATTACK_TYPE_DICT_FOR_COMMAND.get(attack_type)
-        await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{lap}週目{boss_index+1}ボスに宣言します")
+        await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{lap}周目{boss_index+1}ボスに宣言します")
         await self._attack_declare(clan_data, player_data, attack_type_v, lap, boss_index)
 
     @cog_ext.cog_slash(
@@ -321,7 +321,7 @@ class ClanBattle(commands.Cog):
             return
         clan_data, player_data, lap, boss_index = cheked
 
-        await ctx.send(content=f"{member.display_name}の凸を{lap}週目{boss_index+1}ボスに消化します")
+        await ctx.send(content=f"{member.display_name}の凸を{lap}周目{boss_index+1}ボスに消化します")
 
         boss_status_data = clan_data.boss_status_data[lap][boss_index]
         attack_status_index = boss_status_data.get_attack_status_index(player_data, False)
@@ -588,7 +588,7 @@ class ClanBattle(commands.Cog):
                     continue
                 attack_list.append(attack_status.create_attack_status_txt(user.display_name, current_hp))
                 total_damage += attack_status.damage
-        progress_title = f"[{lap}週目] {ClanBattleData.boss_names[boss_index]}"
+        progress_title = f"[{lap}周目] {ClanBattleData.boss_names[boss_index]}"
         if boss_status_data.beated:
             progress_title += " **討伐済み**"
         else:
@@ -907,16 +907,17 @@ class ClanBattle(commands.Cog):
         ]
         SQLiteUtil.delete_all_reservedata(clan_data)
 
-        # 2週以上の古い周を削除する
-        latest_lap = max(clan_data.boss_status_data.keys())
-        old_laps = list(lap for lap in clan_data.boss_status_data.keys() if latest_lap - 1 > lap)
+        # 2周以上の古い周を削除する
+        # TODO 周回数管理がちゃんとできるようになったらここら辺を直す
+        # latest_lap = max(clan_data.boss_status_data.keys())
+        # old_laps = list(lap for lap in clan_data.boss_status_data.keys() if latest_lap - 1 > lap)
 
-        for old_lap in old_laps:
-            del clan_data.boss_status_data[old_lap]
-            del clan_data.progress_message_ids[old_lap]
-            del clan_data.summary_message_ids[old_lap]
+        # for old_lap in old_laps:
+        #     del clan_data.boss_status_data[old_lap]
+        #     del clan_data.progress_message_ids[old_lap]
+        #     del clan_data.summary_message_ids[old_lap]
 
-        SQLiteUtil.delete_old_data(clan_data, latest_lap-1)
+        # SQLiteUtil.delete_old_data(clan_data, latest_lap-1)
 
         if clan_data.form_data.form_url:
             now = datetime.now(JST)
