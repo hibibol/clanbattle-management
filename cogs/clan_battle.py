@@ -14,8 +14,7 @@ from discord_slash.context import SlashContext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_choice, create_option
 
-from cogs.cbutil.attack_type import (ATTACK_TYPE_DICT,
-                                     ATTACK_TYPE_DICT_FOR_COMMAND, AttackType)
+from cogs.cbutil.attack_type import ATTACK_TYPE_DICT, AttackType
 from cogs.cbutil.boss_status_data import AttackStatus
 from cogs.cbutil.clan_battle_data import ClanBattleData, update_clanbattledata
 from cogs.cbutil.clan_data import ClanData
@@ -241,15 +240,15 @@ class ClanBattle(commands.Cog):
                 choices=[
                     create_choice(
                         name=f"{EMOJI_PHYSICS} 物理凸",
-                        value="p",
+                        value=EMOJI_PHYSICS,
                     ),
                     create_choice(
                         name=f"{EMOJI_MAGIC} 魔法凸",
-                        value="m"
+                        value=EMOJI_MAGIC
                     ),
                     create_choice(
                         name=f"{EMOJI_CARRYOVER} 持ち越し凸",
-                        value="c"
+                        value=EMOJI_CARRYOVER
                     )
                 ]
             ),
@@ -274,7 +273,9 @@ class ClanBattle(commands.Cog):
             return
         clan_data, player_data, lap, boss_index = checked
 
-        attack_type_v = ATTACK_TYPE_DICT_FOR_COMMAND.get(attack_type)
+        attack_type_v = ATTACK_TYPE_DICT.get(attack_type)
+        if attack_type_v is AttackType.CARRYOVER and not player_data.carry_over_list:
+            return ctx.send("持ち越しを所持していません。凸宣言をキャンセルします。")
         await ctx.send(content=f"{member.display_name}の凸を{attack_type_v.value}で{lap}周目{boss_index+1}ボスに宣言します")
         await self._attack_declare(clan_data, player_data, attack_type_v, lap, boss_index)
 
@@ -523,7 +524,8 @@ class ClanBattle(commands.Cog):
         if log_type is OperationType.ATTACK_DECLAR:
             if (attack_index := boss_status_data.get_attack_status_index(player_data, False)) is not None:
                 attack_status = boss_status_data.attack_players[attack_index]
-                SQLiteUtil.delete_attackstatus(clan_data, log_data.lap, boss_index, attack_status)
+                SQLiteUtil.delete_attackstatus(
+                    clan_data=clan_data, lap=log_data.lap, boss_index=boss_index, attack_status=attack_status)
                 del boss_status_data.attack_players[attack_index]
                 del player_data.log[-1]
                 await self._update_progress_message(clan_data, log_data.lap, boss_index)
@@ -665,6 +667,49 @@ class ClanBattle(commands.Cog):
         progress_message = await channel.fetch_message(clan_data.summary_message_ids[lap][boss_idx])
         await progress_message.edit(embed=progress_embed)
 
+    async def _delete_carry_over_by_attack(
+        self,
+        clan_data: ClanData,
+        attack_status: AttackStatus,
+        channel: discord.TextChannel,
+        user: discord.User
+    ) -> bool:
+        """持ち越しでの凸時に凸宣言を持ち越しを削除する。
+        
+        Returns
+        ---------
+        bool
+            正常に削除できたかどうか
+        """
+        carry_over_index = 0
+        if not attack_status.player_data.carry_over_list:
+            del attack_status.player_data.log[-1]
+            await channel.send(f"{user.mention} 持ち越しを所持していません。キャンセルします。")
+            return False
+        if len(attack_status.player_data.carry_over_list) > 1:
+            try:
+                carry_over_index = await select_from_list(
+                    self.bot,
+                    channel,
+                    user,
+                    attack_status.player_data.carry_over_list,
+                    f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
+                )
+            except TimeoutError:
+                del attack_status.player_data.log[-1]
+                return False
+        # たまにエラーが出る。再現性不明
+        if carry_over_index < len(attack_status.player_data.carry_over_list):
+            SQLiteUtil.delete_carryover_data(
+                clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
+            del attack_status.player_data.carry_over_list[carry_over_index]
+        else:
+            logger.error(f"Index Error: carry_over_index={carry_over_index}"
+                         f", length={len(attack_status.player_data.carry_over_list)}")
+            await channel.send("エラーが発生しました")
+            return False
+        return True
+
     async def _attack_boss(
         self,
         attack_status: AttackStatus,
@@ -684,28 +729,12 @@ class ClanBattle(commands.Cog):
         )
 
         if attack_status.attack_type is AttackType.CARRYOVER:
-            carry_over_index = 0
-            if len(attack_status.player_data.carry_over_list) > 1:
-                try:
-                    carry_over_index = await select_from_list(
-                        self.bot,
-                        channel,
-                        user,
-                        attack_status.player_data.carry_over_list,
-                        f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
-                    )
-                except TimeoutError:
-                    del attack_status.player_data.log[-1]
-                    return
-            # たまにエラーが出る。再現性不明
-            if carry_over_index < len(attack_status.player_data.carry_over_list):
-                SQLiteUtil.delete_carryover_data(
-                    clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
-                del attack_status.player_data.carry_over_list[carry_over_index]
-            else:
-                logger.error(f"Index Error: carry_over_index={carry_over_index}"
-                             f", length={len(attack_status.player_data.carry_over_list)}")
-                channel.send("エラーが発生しました")
+            if not await self._delete_carry_over_by_attack(
+                clan_data=clan_data,
+                attack_status=attack_status,
+                channel=channel,
+                user=user
+            ):
                 return
         else:
             attack_status.update_attack_log()
@@ -730,7 +759,7 @@ class ClanBattle(commands.Cog):
         player_data.log.append(LogData(
             operation_type=OperationType.ATTACK_DECLAR, lap=lap, boss_index=boss_index
         ))
-    
+
     async def _last_attack_boss(
         self,
         attack_status: AttackStatus,
@@ -756,27 +785,12 @@ class ClanBattle(commands.Cog):
 
         attack_status.attacked = True
         if attack_status.attack_type is AttackType.CARRYOVER:
-            carry_over_index = 0
-            if len(attack_status.player_data.carry_over_list) > 1:
-                try:
-                    carry_over_index = await select_from_list(
-                        self.bot,
-                        channel,
-                        user,
-                        attack_status.player_data.carry_over_list,
-                        f"{user.mention} 持ち越しが二つ以上発生しています。以下から使用した持ち越しを選択してください"
-                    )
-                except TimeoutError:
-                    return
-            # たまにエラーが出る。再現性不明
-            if carry_over_index < len(attack_status.player_data.carry_over_list):
-                SQLiteUtil.delete_carryover_data(
-                    clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
-                del attack_status.player_data.carry_over_list[carry_over_index]
-            else:
-                logger.error(f"Index Error: carry_over_index={carry_over_index}"
-                             f", length={len(attack_status.player_data.carry_over_list)}")
-                channel.send("エラーが発生しました")
+            if not await self._delete_carry_over_by_attack(
+                clan_data=clan_data,
+                attack_status=attack_status,
+                channel=channel,
+                user=user
+            ):
                 return
         else:
             attack_status.update_attack_log()
@@ -1103,13 +1117,14 @@ class ClanBattle(commands.Cog):
                 await self._update_reserve_message(clan_data, boss_index)
                 SQLiteUtil.register_reservedata(clan_data, boss_index, reserve_data)
             else:
-                # 既に凸宣言済みだったら実行しない
-                declaring_flag = False
-                for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players:
-                    if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                        declaring_flag = True
-                if not declaring_flag\
-                   or (attack_type is AttackType.CARRYOVER and not player_data.carry_over_list):  # 持ち越し未所持で持ち越しでの凸は反応しない
+                if not any(
+                    attack_status.player_data.user_id == payload.user_id and not attack_status.attacked  # 既に凸宣言済みだったら実行しない
+                    for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players
+                ) and (
+                    attack_type in {AttackType.MAGIC, AttackType.PHYSICS} or (
+                        attack_type is AttackType.CARRYOVER and player_data.carry_over_list  # 持ち越し未所持で持ち越しでの凸は反応しない
+                    )
+                ):
                     await self._attack_declare(clan_data, player_data, attack_type, lap, boss_index)
             return await remove_reaction()
 

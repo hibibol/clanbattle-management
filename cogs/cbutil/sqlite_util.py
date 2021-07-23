@@ -113,16 +113,16 @@ UPDATE_ATTACKSTATUS_SQL = """update AttackStatus
         attacked=?,
         attack_type=?
     where
-        category_id=? and user_id=? and lap=? and boss_index=? and attacked='FALSE'"""
+        category_id=? and user_id=? and lap=? and boss_index=? and created=?"""
 REVERSE_ATTACKSTATUS_SQL = """update AttackStatus
     set
-        attacked='FALSE'
+        attacked=0
     where
         category_id=? and user_id=? and lap=? and boss_index=? and created=?
 """
 DELETE_ATTACKSTATUS_SQL = """delete from AttackStatus
     where
-        category_id=? and user_id=? and lap=? and boss_index=? and attacked='FALSE'"""
+        category_id=? and user_id=? and lap=? and boss_index=? and created=?"""
 REGISTER_BOSS_STATUS_DATA_SQL = """insert into BossStatusData values (
     :category_id,
     :boss_index,
@@ -420,6 +420,7 @@ class SQLiteUtil():
             attack_status.player_data.user_id,
             lap,
             boss_index,
+            attack_status.created,
         ))
         con.commit()
         con.close()
@@ -433,6 +434,7 @@ class SQLiteUtil():
             attack_status.player_data.user_id,
             lap,
             boss_index,
+            attack_status.created,
         ))
         con.commit()
         con.close()
@@ -446,7 +448,7 @@ class SQLiteUtil():
             attack_status.player_data.user_id,
             lap,
             boss_index,
-            attack_status.created
+            attack_status.created,
         ))
         con.commit()
         con.close()
