@@ -89,3 +89,9 @@ class ClanData():
         while self.progress_message_ids[lap][boss_index] == 0:
             lap -= 1
         return lap
+    
+    def initialize_progress_data(self) -> None:
+        """ボスの進行関連のデータを全て初期化する"""
+        self.progress_message_ids = {}
+        self.boss_status_data = {}
+        self.summary_message_ids = {}

@@ -216,8 +216,8 @@ class ClanBattle(commands.Cog):
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
         await ctx.send(content=f"周回数を{lap}に設定します")
-        clan_data.summary_message_ids = {}
         # ボス状態に関するすべてのデータを削除する
+        clan_data.initialize_progress_data()
         SQLiteUtil.delete_old_data(clan_data, 999)
         await self._initialize_progress_messages(clan_data, lap)
         await self._update_remain_attack_message(clan_data)
