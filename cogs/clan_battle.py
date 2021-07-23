@@ -138,11 +138,6 @@ class ClanBattle(commands.Cog):
 
         await ctx.send(f"{len(player_data_list)}名のデータを削除します。")
         for player_data in player_data_list:
-            for boss_status_data in clan_data.boss_status_data:
-                boss_status_data.attack_players = [
-                    attack_player for attack_player in boss_status_data.attack_players
-                    if attack_player.player_data.user_id != player_data.user_id]
-
             for i in range(5):
                 clan_data.reserve_list[i] = [
                     reserve_data for reserve_data in clan_data.reserve_list[i]
@@ -195,7 +190,7 @@ class ClanBattle(commands.Cog):
             summary_channel.id
         )
         self.clan_data[category.id] = clan_data
-        await self._initialize_progress_messages(clan_data)
+        await self._initialize_progress_messages(clan_data, 1)
         await self._initialize_reserve_message(clan_data)
         await self._initialize_remain_attack_message(clan_data)
         SQLiteUtil.register_clandata(clan_data)
@@ -220,8 +215,7 @@ class ClanBattle(commands.Cog):
             await ctx.send(content="凸管理を行うカテゴリーチャンネル内で実行してください")
             return
         await ctx.send(content=f"周回数を{lap}に設定します")
-        clan_data.lap = lap
-        await self._initialize_progress_messages(clan_data)
+        await self._initialize_progress_messages(clan_data, lap)
         await self._update_remain_attack_message(clan_data)
         SQLiteUtil.update_clandata(clan_data)
 
@@ -523,37 +517,27 @@ class ClanBattle(commands.Cog):
         """元に戻す処理を実施する。"""
         boss_index = log_data.boss_index
         log_type = log_data.operation_type
+        boss_status_data = clan_data.boss_status_data[log_data.lap][boss_index]
         if log_type is OperationType.ATTACK_DECLAR:
-            attack_index = -1
-            for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players):
-                if attack_status.player_data == player_data and not attack_status.attacked:
-                    attack_index = i
-                    break
-            if attack_index != -1:
-                attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
+            if attack_index := boss_status_data.get_attack_status_index(player_data, False):
+                attack_status = boss_status_data.attack_players[attack_index]
                 SQLiteUtil.delete_attackstatus(clan_data, boss_index, attack_status)
-                del clan_data.boss_status_data[boss_index].attack_players[attack_index]
+                del boss_status_data.attack_players[attack_index]
                 del player_data.log[-1]
-                await self._update_progress_message(clan_data, boss_index)
+                await self._update_progress_message(clan_data, log_data.lap, boss_index)
         
         if log_type is OperationType.ATTACK or log_type is OperationType.LAST_ATTACK:
-            attack_index = -1
-            for i, attack_status in enumerate(clan_data.boss_status_data[boss_index].attack_players[::-1]):
-                if attack_status.player_data == player_data and attack_status.attacked:
-                    attack_index = len(clan_data.boss_status_data[boss_index].attack_players) - 1 - i
-                    break
-
-            if attack_index != -1:
-                attack_status = clan_data.boss_status_data[boss_index].attack_players[attack_index]
+            if attack_index := boss_status_data.get_attack_status_index(player_data, True):
+                attack_status = boss_status_data.attack_players[attack_index]
                 player_data.from_dict(log_data.player_data)
                 attack_status.attacked = False
                 SQLiteUtil.reverse_attackstatus(clan_data, boss_index, attack_status)
 
                 if log_type is OperationType.LAST_ATTACK:
-                    clan_data.boss_status_data[boss_index].beated = log_data.beated
-                    SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
+                    boss_status_data.beated = log_data.beated
+                    SQLiteUtil.update_boss_status_data(clan_data, boss_index, boss_status_data)
                 del player_data.log[-1]
-                await self._update_progress_message(clan_data, boss_index)
+                await self._update_progress_message(clan_data, log_data.lap, boss_index)
                 await self._update_remain_attack_message(clan_data)
                 SQLiteUtil.update_playerdata(clan_data, player_data)
                 SQLiteUtil.reregister_carryover_data(clan_data, player_data)
@@ -590,28 +574,32 @@ class ClanBattle(commands.Cog):
                     clan_data.reserve_list[i] = list(diff_set)
                     await self._update_reserve_message(clan_data, i)
 
-    def _create_progress_message(self, clan_data: ClanData, boss_index: int, guild: discord.Guild) -> discord.Embed:
+    def _create_progress_message(
+        self, clan_data: ClanData, lap: int, boss_index: int, guild: discord.Guild
+    ) -> discord.Embed:
         """進行用のメッセージを作成する"""
         attacked_list: List[str] = []
         attack_list: List[str] = []
-        clan_data.boss_status_data[boss_index].attack_players.sort(key=lambda x: x.damage, reverse=True)
+        boss_status_data = clan_data.boss_status_data[lap][boss_index]
+        boss_status_data.attack_players.sort(key=lambda x: x.damage, reverse=True)
         total_damage: int = 0
-        current_hp: int = clan_data.boss_status_data[boss_index].max_hp
-        for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+        current_hp: int = boss_status_data.max_hp
+        for attack_status in boss_status_data.attack_players:
             if attack_status.attacked:
                 user = guild.get_member(attack_status.player_data.user_id)
                 attacked_list.append(f"(凸済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}")
                 current_hp -= attack_status.damage
-        for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+        for attack_status in boss_status_data.attack_players:
             if not attack_status.attacked:
                 user = guild.get_member(attack_status.player_data.user_id)
                 attack_list.append(attack_status.create_attack_status_txt(user.display_name, current_hp))
                 total_damage += attack_status.damage
         progress_title = f"[{clan_data.lap}週目] {ClanBattleData.boss_names[boss_index]}"
-        if clan_data.boss_status_data[boss_index].beated:
+        if boss_status_data.beated:
             progress_title += " **討伐済み**"
         else:
-            progress_title += f" {'{:,}'.format(current_hp)}万/{'{:,}'.format(clan_data.boss_status_data[boss_index].max_hp)}万 合計 {'{:,}'.format(total_damage)}万"
+            progress_title += f" {'{:,}'.format(current_hp)}万/{'{:,}'.format(boss_status_data.max_hp)}万"\
+                " 合計 {'{:,}'.format(total_damage)}万"
 
         progress_description = "\n".join(attacked_list) + "\n" + "\n".join(attack_list)
         pr_embed = discord.Embed(
@@ -622,53 +610,70 @@ class ClanBattle(commands.Cog):
         pr_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
         return pr_embed
 
-    async def _initialize_progress_messages(self, clan_data: ClanData) -> None:
-        """各ボスに対する凸状況を初期化して新しく進行メッセージを送信する"""
-        guild = self.bot.get_guild(clan_data.guild_id)
-        clan_data.initialize_boss_status_data()
-        SQLiteUtil.delete_all_boss_status_data(clan_data)  # 消して作って効率が悪いのでどうにかしたいお気持ち。
+    async def _initialize_progress_messages(
+        self, clan_data: ClanData, lap: int
+    ) -> None:
+        clan_data.progress_message_ids[lap] = [0, 0, 0, 0, 0]
+        clan_data.initialize_boss_status_data(lap)
+        SQLiteUtil.register_progress_message_id(clan_data, lap)
         SQLiteUtil.register_all_boss_status_data(clan_data)
-        SQLiteUtil.delete_all_attackstatus(clan_data)
+        for i in range(5):
+            await self._send_new_progress_message(clan_data, lap, i)
 
-        for i, channel_id in enumerate(clan_data.boss_channel_ids):
-            channel = self.bot.get_channel(channel_id)
-            progress_embed = self._create_progress_message(clan_data, i, guild)
-            progress_message: discord.Message = await channel.send(embed=progress_embed)
-            clan_data.progress_message_ids[i] = progress_message.id
+    async def _send_new_progress_message(
+        self, clan_data: ClanData, lap: int, boss_index: int
+    ) -> None:
+        """新しい進行メッセージを送信する"""
+        guild = self.bot.get_guild(clan_data.guild_id)
 
-            await progress_message.add_reaction(EMOJI_PHYSICS)
-            await progress_message.add_reaction(EMOJI_MAGIC)
-            await progress_message.add_reaction(EMOJI_CARRYOVER)
-            await progress_message.add_reaction(EMOJI_ATTACK)
-            await progress_message.add_reaction(EMOJI_LAST_ATTACK)
-            await progress_message.add_reaction(EMOJI_REVERSE)
+        channel = self.bot.get_channel(clan_data.boss_channel_ids[boss_index])
+        progress_embed = self._create_progress_message(clan_data, lap, boss_index, guild)
+        progress_message: discord.Message = await channel.send(embed=progress_embed)
+        clan_data.progress_message_ids[lap][boss_index] = progress_message.id
 
-            summary_channel = self.bot.get_channel(clan_data.summary_channel_id)
-            progress_message = await summary_channel.send(embed=progress_embed)
-            clan_data.summary_message_ids[i] = progress_message.id
-            SQLiteUtil.update_boss_status_data(clan_data, i, clan_data.boss_status_data[i])
+        await progress_message.add_reaction(EMOJI_PHYSICS)
+        await progress_message.add_reaction(EMOJI_MAGIC)
+        await progress_message.add_reaction(EMOJI_CARRYOVER)
+        await progress_message.add_reaction(EMOJI_ATTACK)
+        await progress_message.add_reaction(EMOJI_LAST_ATTACK)
+        await progress_message.add_reaction(EMOJI_REVERSE)
 
-    async def _update_progress_message(self, clan_data: ClanData, boss_idx: int) -> None:
+        # まとめ用のメッセージがなければ新しく送信する
+        if lap not in clan_data.summary_message_ids:
+            for i in range(5):
+                progress_embed = self._create_progress_message(clan_data, lap, i, guild)
+                summary_channel = self.bot.get_channel(clan_data.summary_channel_id)
+                progress_message = await summary_channel.send(embed=progress_embed)
+                clan_data.summary_message_ids[lap][i] = progress_message.id
+            SQLiteUtil.register_summary_message_id(clan_data, lap)
+
+    async def _update_progress_message(self, clan_data: ClanData, lap: int, boss_idx: int) -> None:
         """進行用のメッセージを更新する"""
         channel = self.bot.get_channel(clan_data.boss_channel_ids[boss_idx])
-        progress_message = await channel.fetch_message(clan_data.progress_message_ids[boss_idx])
-        progress_embed = self._create_progress_message(clan_data, boss_idx, channel.guild)
+        progress_message = await channel.fetch_message(clan_data.progress_message_ids[lap][boss_idx])
+        progress_embed = self._create_progress_message(clan_data, lap, boss_idx, channel.guild)
         await progress_message.edit(embed=progress_embed)
 
         # まとめチャンネルの進行用メッセージを更新する
         channel = self.bot.get_channel(clan_data.summary_channel_id)
-        progress_message = await channel.fetch_message(clan_data.summary_message_ids[boss_idx])
+        progress_message = await channel.fetch_message(clan_data.summary_message_ids[lap][boss_idx])
         await progress_message.edit(embed=progress_embed)
 
     async def _attack_boss(
-        self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
+        self,
+        attack_status: AttackStatus,
+        clan_data: ClanData,
+        lap: int,
+        boss_index: int,
+        channel: discord.TextChannel,
+        user: discord.User
     ) -> None:
         """ボスに凸したときに実行する"""
 
         # ログデータの取得
         attack_status.player_data.log.append(
             LogData(
-                OperationType.ATTACK, boss_index, attack_status.player_data.to_dict()
+                OperationType.ATTACK, lap, boss_index, attack_status.player_data.to_dict()
             )
         )
 
@@ -686,8 +691,16 @@ class ClanBattle(commands.Cog):
                 except TimeoutError:
                     del attack_status.player_data.log[-1]
                     return
-            SQLiteUtil.delete_carryover_data(clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
-            del attack_status.player_data.carry_over_list[carry_over_index]
+            # たまにエラーが出る。再現性不明
+            if carry_over_index < len(attack_status.player_data.carry_over_list):
+                SQLiteUtil.delete_carryover_data(
+                    clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
+                del attack_status.player_data.carry_over_list[carry_over_index]
+            else:
+                logger.error(f"Index Error: carry_over_index={carry_over_index}"
+                             f", length={len(attack_status.player_data.carry_over_list)}")
+                channel.send("エラーが発生しました")
+                return
         else:
             attack_status.update_attack_log()
 
@@ -695,34 +708,44 @@ class ClanBattle(commands.Cog):
 
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
         SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
-        await self._update_progress_message(clan_data, boss_index)
+        await self._update_progress_message(clan_data, lap, boss_index)
         await self._update_remain_attack_message(clan_data)
         await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
 
-    async def _attack_declare(self, clan_data: ClanData, player_data: PlayerData, attack_type: AttackType, boss_index: int):
+    async def _attack_declare(
+        self, clan_data: ClanData, player_data: PlayerData, attack_type: AttackType, lap: int, boss_index: int
+    ) -> None:
         attack_status = AttackStatus(
             player_data, attack_type, attack_type is AttackType.CARRYOVER
         )
-        clan_data.boss_status_data[boss_index].attack_players.append(attack_status)
-        await self._update_progress_message(clan_data, boss_index)
+        clan_data.boss_status_data[lap][boss_index].attack_players.append(attack_status)
+        await self._update_progress_message(clan_data, lap, boss_index)
         SQLiteUtil.register_attackstatus(clan_data, boss_index, attack_status)
         player_data.log.append(LogData(
             OperationType.ATTACK_DECLAR, boss_index
         ))
     
     async def _last_attack_boss(
-        self, attack_status: AttackStatus, clan_data: ClanData, boss_index: int, channel: discord.TextChannel, user: discord.User
+        self,
+        attack_status: AttackStatus,
+        clan_data: ClanData,
+        lap: int,
+        boss_index: int,
+        channel: discord.TextChannel,
+        user: discord.User
     ) -> None:
         """ボスを討伐した際に実行する"""
-        if clan_data.boss_status_data[boss_index].beated:
+        boss_status_data = clan_data.boss_status_data[lap][boss_index]
+        if boss_status_data.beated:
             return await channel.send("既に討伐済みのボスです")
 
         # ログデータの取得
         attack_status.player_data.log.append(LogData(
             OperationType.LAST_ATTACK,
+            lap,
             boss_index,
             attack_status.player_data.to_dict(),
-            clan_data.boss_status_data[boss_index].beated)
+            boss_status_data.beated)
         )
 
         attack_status.attacked = True
@@ -739,8 +762,16 @@ class ClanBattle(commands.Cog):
                     )
                 except TimeoutError:
                     return
-            SQLiteUtil.delete_carryover_data(clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
-            del attack_status.player_data.carry_over_list[carry_over_index]
+            # たまにエラーが出る。再現性不明
+            if carry_over_index < len(attack_status.player_data.carry_over_list):
+                SQLiteUtil.delete_carryover_data(
+                    clan_data, attack_status.player_data, attack_status.player_data.carry_over_list[carry_over_index])
+                del attack_status.player_data.carry_over_list[carry_over_index]
+            else:
+                logger.error(f"Index Error: carry_over_index={carry_over_index}"
+                             f", length={len(attack_status.player_data.carry_over_list)}")
+                channel.send("エラーが発生しました")
+                return
         else:
             attack_status.update_attack_log()
             SQLiteUtil.update_playerdata(clan_data, attack_status.player_data)
@@ -748,19 +779,22 @@ class ClanBattle(commands.Cog):
             if len(attack_status.player_data.carry_over_list) < 3:
                 attack_status.player_data.carry_over_list.append(carry_over)
                 SQLiteUtil.register_carryover_data(clan_data, attack_status.player_data, carry_over)
-        clan_data.boss_status_data[boss_index].beated = True
-        await self._update_progress_message(clan_data, boss_index)
+        boss_status_data.beated = True
+        await self._update_progress_message(clan_data, lap, boss_index)
         SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
-        SQLiteUtil.update_boss_status_data(clan_data, boss_index, clan_data.boss_status_data[boss_index])
+        SQLiteUtil.update_boss_status_data(clan_data, boss_index, boss_status_data)
+        next_lap = lap + 1
 
-        # この周のボスがすべて倒された場合は次週に進む
-        if all(clan_data.boss_status_data[i].beated for i in range(5)):
-            # ログを全削除。戻せる仕様は考えるのが大変なので後回し
-            for player_data in clan_data.player_data_dict.values():
-                player_data.log = []
-            clan_data.lap += 1
-            await self._initialize_progress_messages(clan_data)
-        SQLiteUtil.update_clandata(clan_data)
+        # 進行用メッセージを保持するリストがなければ新しく作成する
+        if next_lap not in clan_data.progress_message_ids:
+            clan_data.progress_message_ids[next_lap] = [0, 0, 0, 0, 0]
+            clan_data.initialize_boss_status_data(next_lap)
+            SQLiteUtil.register_progress_message_id(clan_data, next_lap)
+            SQLiteUtil.register_all_boss_status_data(clan_data)
+        
+        # 進行用のメッセージが送信されていなければ新しく送信する
+        if clan_data.progress_message_ids[next_lap][boss_index] == 0:
+            await self._send_new_progress_message(clan_data, next_lap, boss_index)
         await self._update_remain_attack_message(clan_data)
         await self._delete_reserve_by_attack(clan_data, attack_status, boss_index)
 
@@ -972,18 +1006,25 @@ class ClanBattle(commands.Cog):
 
         if message.channel.id not in clan_data.boss_channel_ids:
             return
+
+        player_data = clan_data.player_data_dict.get(message.author.id)
+        if not player_data:
+            return
+
         boss_index = clan_data.boss_channel_ids.index(message.channel.id)
-        attack_players = clan_data.boss_status_data[boss_index].attack_players
+        lap = clan_data.get_latest_lap(boss_index)
+        attack_players = clan_data.boss_status_data[lap][boss_index].attack_players
 
         damage_data = get_damage(message.content)
         if damage_data is None:
             return
-        for attack_status in attack_players:
-            if attack_status.player_data.user_id == message.author.id and not attack_status.attacked:
-                attack_status.damage = damage_data[0]
-                attack_status.memo = damage_data[1]
-                SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
-        await self._update_progress_message(clan_data, boss_index)
+
+        if attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(player_data):
+            attack_status = attack_players[attack_status_index]
+            attack_status.damage = damage_data[0]
+            attack_status.memo = damage_data[1]
+            SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
+        await self._update_progress_message(clan_data, lap, boss_index)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -1004,15 +1045,17 @@ class ClanBattle(commands.Cog):
             return
 
         if clan_data.reserve_channel_id == payload.channel_id:
-            try:
-                boss_index = clan_data.reserve_message_ids.index(payload.message_id)
-            except ValueError:
+            boss_index = clan_data.get_reserve_boss_index(payload.message_id)
+            if boss_index is None:
                 return
+            lap = 0
             reserve_flag = True
         else:
-            try:
-                boss_index = clan_data.progress_message_ids.index(payload.message_id)
-            except ValueError:
+            boss_index = clan_data.get_boss_index_from_channel_id(payload.channel_id)
+            if boss_index is None:
+                return
+            lap = clan_data.get_lap_from_message_id(payload.message_id, boss_index)
+            if lap is None:
                 return
             reserve_flag = False
 
@@ -1039,25 +1082,25 @@ class ClanBattle(commands.Cog):
             else:
                 # 既に凸宣言済みだったら実行しない
                 declaring_flag = False
-                for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+                for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players:
                     if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
                         declaring_flag = True
                 if not declaring_flag\
                    or (attack_type is AttackType.CARRYOVER and not player_data.carry_over_list):  # 持ち越し未所持で持ち越しでの凸は反応しない
-                    await self._attack_declare(clan_data, player_data, attack_type, boss_index)
+                    await self._attack_declare(clan_data, player_data, attack_type, lap, boss_index)
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_ATTACK:
-            for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+            for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    await self._attack_boss(attack_status, clan_data, boss_index, channel, user)
+                    await self._attack_boss(attack_status, clan_data, lap, boss_index, channel, user)
                     break
             return await remove_reaction()
 
         elif str(payload.emoji) == EMOJI_LAST_ATTACK:
-            for attack_status in clan_data.boss_status_data[boss_index].attack_players:
+            for attack_status in clan_data.boss_status_data[lap][boss_index].attack_players:
                 if attack_status.player_data.user_id == payload.user_id and not attack_status.attacked:
-                    await self._last_attack_boss(attack_status, clan_data, boss_index, channel, user)
+                    await self._last_attack_boss(attack_status, clan_data, lap, boss_index, channel, user)
                     SQLiteUtil.update_attackstatus(clan_data, boss_index, attack_status)
                     break
             return await remove_reaction()
@@ -1072,7 +1115,8 @@ class ClanBattle(commands.Cog):
                 if len(user_reserve_data_list) > 1:
                     command_channel = self.bot.get_channel(clan_data.command_channel_id)
                     user_selected_index = await select_from_list(
-                        self.bot, command_channel, user, [rd[1] for rd in user_reserve_data_list], f"{user.mention} 予約が複数あります。以下から削除をしたい予約を選んでください。"
+                        self.bot, command_channel, user, [rd[1] for rd in user_reserve_data_list],
+                        f"{user.mention} 予約が複数あります。以下から削除をしたい予約を選んでください。"
                     )
                     if user_selected_index is None:
                         return await remove_reaction()
@@ -1093,7 +1137,8 @@ class ClanBattle(commands.Cog):
                 if len(user_reserve_data_list) > 1:
                     command_channel = self.bot.get_channel(clan_data.command_channel_id)
                     user_selected_index = await select_from_list(
-                        self.bot, command_channel, user, user_reserve_data_list, f"{user.mention} 予約が複数あります。以下から予約設定をしたい予約を選んでください。"
+                        self.bot, command_channel, user, user_reserve_data_list,
+                        f"{user.mention} 予約が複数あります。以下から予約設定をしたい予約を選んでください。"
                     )
                     if user_selected_index is None:
                         return await remove_reaction()
@@ -1112,8 +1157,10 @@ class ClanBattle(commands.Cog):
                 return await remove_reaction()
             log_data = player_data.log[-1]
             log_index = log_data.boss_index
-            if log_index != boss_index:
-                txt = f"<@{payload.user_id}> すでに{log_index+1}ボスに凸しています。先に<#{clan_data.boss_channel_ids[log_index]}>で{EMOJI_REVERSE}を押してください"
+            log_lap = log_data.lap
+            if log_index != boss_index or log_lap != lap:
+                txt = f"<@{payload.user_id}> すでに{log_lap}週目{log_index+1}ボスに凸しています。"\
+                    f"先に<#{clan_data.boss_channel_ids[log_index]}>で{EMOJI_REVERSE}を押してください"
                 channel = self.bot.get_channel(payload.channel_id)
                 await channel.send(txt, delete_after=30)
                 return await remove_reaction()
