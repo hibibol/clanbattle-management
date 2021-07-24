@@ -1292,12 +1292,12 @@ class ClanBattle(commands.Cog):
         if lap is None:
             lap = latest_lap
         elif latest_lap < lap:
-            ctx.send("不正な周回数です")
+            await ctx.send("不正な周回数です")
             return
 
         player_data = clan_data.player_data_dict.get(member.id)
         if not player_data:
-            ctx.send(f"{member.display_name}は凸管理対象ではありません。")
+            await ctx.send(f"{member.display_name}は凸管理対象ではありません。")
             return
         return clan_data, player_data, lap, boss_index
 
