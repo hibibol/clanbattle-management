@@ -70,15 +70,14 @@ async def get_from_web_api(url: str):
 def create_limit_time_text(raw_limit_time_text: str) -> str:
     spans = [tuple(map(int, span.replace("時", "").split("～"))) for span in raw_limit_time_text.split(", ")]
     fix_spans = []
-    min_hour = spans[0][0]
-    max_hour = spans[0][1]
+    min_hour, max_hour = spans[0]
     for span in spans[1:]:
         if max_hour == span[0]:
             max_hour = span[1]
         else:
             fix_spans.append((min_hour, max_hour))
-            min_hour = span[0]
-            max_hour = span[1]
+            min_hour, max_hour = span
+
     fix_spans.append((min_hour, max_hour))
 
     now_hour = datetime.now(JST).hour
@@ -87,7 +86,7 @@ def create_limit_time_text(raw_limit_time_text: str) -> str:
     time_text_list = []
 
     for i, span in enumerate(fix_spans):
-        if span[1] < now_hour:
+        if span[1] <= now_hour:
             if len(fix_spans) - 1 == i:
                 time_text_list.append(f"～{span[1]}時")
         if span[0] > now_hour:
