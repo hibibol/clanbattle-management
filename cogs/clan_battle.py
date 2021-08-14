@@ -592,7 +592,9 @@ class ClanBattle(commands.Cog):
                 user = guild.get_member(attack_status.player_data.user_id)
                 if user is None:
                     continue
-                attacked_list.append(f"(凸済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}")
+                attacked_list.append(
+                    f"({attack_status.attack_type.value}済み) {'{:,}'.format(attack_status.damage)}万 {user.display_name}"
+                )
                 current_hp -= attack_status.damage
         for attack_status in boss_status_data.attack_players:
             if not attack_status.attacked:
