@@ -867,7 +867,9 @@ class ClanBattle(commands.Cog):
         remain_attack_message_list = [
             [], [], [], []
         ]
-        remain_attack_co = []
+        remain_attack_co = [
+            [], [], [], []
+        ]
         today = (datetime.now(JST) - timedelta(hours=5)).strftime('%m月%d日')
         embed = discord.Embed(
             title=f"{today} の残凸状況",
@@ -883,7 +885,7 @@ class ClanBattle(commands.Cog):
             sum_attack = player_data.magic_attack + player_data.physics_attack
             sum_remain_attack += 3 - sum_attack
             if player_data.carry_over_list:
-                remain_attack_co.append(txt)
+                remain_attack_co[sum_attack].append(txt)
             else:
                 remain_attack_message_list[sum_attack].append(txt)
         for i in range(4):
@@ -894,13 +896,28 @@ class ClanBattle(commands.Cog):
                     value=f"```md\n{content.replace('_', '＿')}\n```",
                     inline=False
                 )
-        content = "\n".join(remain_attack_co)
-        if content:
-            embed.add_field(
-                name="持ち越し所持者",
-                value=f"```md\n{content.replace('_', '＿')}\n```",
-                inline=False
-            )
+            content_co = "\n".join(remain_attack_co[i])
+            if content_co:
+                if len(content_co) < 1014:
+                    embed.add_field(
+                        name=f"残{3-i}凸（持ち越し）",
+                        value=f"```md\n{content_co.replace('_', '＿')}\n```",
+                        inline=False
+                    )
+                else:
+                    center = len(remain_attack_co[i]) // 2 + len(remain_attack_co[i]) % 2
+                    content_co_list = [
+                        "\n".join(remain_attack_co[:center]),
+                        "\n".join(remain_attack_co[center:])
+                    ]
+                    suffix = ["A", "B"]
+                    for i in range(2):
+                        embed.add_field(
+                            name=f"残{3-i}凸（持ち越し{suffix[i]}）",
+                            value=f"```md\n{content_co_list[i]}\n```",
+                            inline=False
+                        )
+
         embed.set_footer(
             text=f"{clan_data.get_latest_lap()}周目 {sum_remain_attack}/{len(clan_data.player_data_dict)*3}"
         )

@@ -50,7 +50,7 @@ class PlayerData():
         if self.raw_limit_time_text:
             txt += " " + create_limit_time_text(self.raw_limit_time_text)
         if self.carry_over_list:
-            txt += "\n　　-" + '\n　　-'.join([str(carry_over) for carry_over in self.carry_over_list])
+            txt += "\n　　- " + '\n　　- '.join([str(carry_over) for carry_over in self.carry_over_list])
         return txt
 
     def create_simple_txt(self, display_name: str) -> str:
