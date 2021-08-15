@@ -34,4 +34,4 @@ DB_NAME = ""
 BASE_URL = ""
 CREATE_FORM_API = ""
 GOOGLE_JSON_PATH = ""
-
+TREASURE_CHEST = "https://cdn.discordapp.com/attachments/845661889161068559/876325765434712144/unknown.png"

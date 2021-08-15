@@ -30,7 +30,7 @@ from cogs.cbutil.util import get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_PHYSICS,
                      EMOJI_REVERSE, EMOJI_SETTING, EMOJI_TASK_KILL, EMOJI_YES,
-                     GUILD_IDS, JST)
+                     GUILD_IDS, JST, TREASURE_CHEST)
 
 logger = getLogger(__name__)
 
@@ -616,7 +616,10 @@ class ClanBattle(commands.Cog):
             description=progress_description,
             colour=BOSS_COLOURS[boss_index]
         )
-        pr_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
+        if boss_status_data.beated:
+            pr_embed.set_thumbnail(url=TREASURE_CHEST)
+        else:
+            pr_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
         return pr_embed
 
     async def _initialize_progress_messages(
