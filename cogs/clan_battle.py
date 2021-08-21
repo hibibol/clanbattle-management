@@ -912,8 +912,8 @@ class ClanBattle(commands.Cog):
                 else:
                     center = len(remain_attack_co[i]) // 2 + len(remain_attack_co[i]) % 2
                     content_co_list = [
-                        "\n".join(remain_attack_co[:center]),
-                        "\n".join(remain_attack_co[center:])
+                        "\n".join(remain_attack_co[i][:center]),
+                        "\n".join(remain_attack_co[i][center:])
                     ]
                     suffix = ["A", "B"]
                     for i in range(2):
