@@ -916,10 +916,10 @@ class ClanBattle(commands.Cog):
                         "\n".join(remain_attack_co[i][center:])
                     ]
                     suffix = ["A", "B"]
-                    for i in range(2):
+                    for j in range(2):
                         embed.add_field(
-                            name=f"残{3-i}凸（持ち越し{suffix[i]}）",
-                            value=f"```md\n{content_co_list[i]}\n```",
+                            name=f"残{3-i}凸（持ち越し{suffix[j]}）",
+                            value=f"```md\n{content_co_list[j]}\n```",
                             inline=False
                         )
 
