@@ -1064,26 +1064,30 @@ class ClanBattle(commands.Cog):
 
         if message.channel.id not in clan_data.boss_channel_ids:
             return
+        boss_index = clan_data.boss_channel_ids.index(message.channel.id)
 
         player_data = clan_data.player_data_dict.get(message.author.id)
         if not player_data:
             return
 
-        boss_index = clan_data.boss_channel_ids.index(message.channel.id)
-        lap = clan_data.get_latest_lap(boss_index)
-        attack_players = clan_data.boss_status_data[lap][boss_index].attack_players
-
         damage_data = get_damage(message.content)
         if damage_data is None:
             return
 
-        if (attack_status_index := clan_data.boss_status_data[lap][boss_index].get_attack_status_index(
-                player_data, False)) is not None:
-            attack_status = attack_players[attack_status_index]
-            attack_status.damage = damage_data[0]
-            attack_status.memo = damage_data[1]
-            await self._update_progress_message(clan_data, lap, boss_index)
-            SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
+        # 凸宣言をしている直近の周でダメージを登録している
+        lap_list = list(clan_data.progress_message_ids.keys())
+        lap_list.sort(reverse=True)
+    
+        for lap in lap_list:
+            boss_status_data = clan_data.boss_status_data[lap][boss_index]
+            if (attack_status_index := boss_status_data.get_attack_status_index(
+                    player_data, False)) is not None:
+                attack_status = boss_status_data.attack_players[attack_status_index]
+                attack_status.damage = damage_data[0]
+                attack_status.memo = damage_data[1]
+                await self._update_progress_message(clan_data, lap, boss_index)
+                SQLiteUtil.update_attackstatus(clan_data, lap, boss_index, attack_status)
+                return
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
