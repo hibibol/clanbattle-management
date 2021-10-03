@@ -709,8 +709,11 @@ class ClanBattle(commands.Cog):
     async def _delete_progress_message(self, clan_data: ClanData, lap: int, boss_idx: int) -> None:
         """進行用のメッセージを削除する""" 
         channel = self.bot.get_channel(clan_data.boss_channel_ids[boss_idx])
-        progress_message: discord.Message = await channel.fetch_message(clan_data.progress_message_ids[lap][boss_idx])
-        await progress_message.delete()
+        try:
+            progress_message: discord.Message = await channel.fetch_message(clan_data.progress_message_ids[lap][boss_idx])
+            await progress_message.delete()
+        except (discord.NotFound, discord.Forbidden):
+            return
 
     async def _delete_carry_over_by_attack(
         self,
