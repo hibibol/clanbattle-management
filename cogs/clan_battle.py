@@ -418,6 +418,40 @@ class ClanBattle(commands.Cog):
         await self._undo(clan_data, player_data, log_data)
 
     @cog_ext.cog_slash(
+        name="resend",
+        description="進行用のメッセージを再送します。",
+        guild_ids=GUILD_IDS,
+        options=[
+            create_option(
+                name="lap",
+                description="周回数 (指定がない場合は今現在のボスが指定されます)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            ),
+            create_option(
+                name="boss_number",
+                description="ボス番号 (各ボスの進行用チャンネルで実行する場合は指定する必要がありません)",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=False
+            )
+        ]
+    )
+    async def resend_progress_message(
+        self, ctx: SlashContext,
+        lap: Optional[int] = None,
+        boss_number: Optional[int] = None
+    ):
+        checked = await self.check_command_arguments(ctx, None, lap, boss_number)
+        if not checked:
+            return
+        clan_data, _, lap, boss_index = checked
+
+        await ctx.send(f"{lap}週目{boss_number}の進行用メッセージを再送します")
+
+        await self._delete_progress_message(clan_data, lap, boss_index)
+        await self._send_new_progress_message(clan_data, lap, boss_index)
+
+    @cog_ext.cog_slash(
         description="持越時間を登録します。",
         guild_ids=GUILD_IDS,
         options=[
@@ -671,6 +705,12 @@ class ClanBattle(commands.Cog):
         channel = self.bot.get_channel(clan_data.summary_channel_id)
         progress_message = await channel.fetch_message(clan_data.summary_message_ids[lap][boss_idx])
         await progress_message.edit(embed=progress_embed)
+
+    async def _delete_progress_message(self, clan_data: ClanData, lap: int, boss_idx: int) -> None:
+        """進行用のメッセージを削除する""" 
+        channel = self.bot.get_channel(clan_data.boss_channel_ids[boss_idx])
+        progress_message: discord.Message = await channel.fetch_message(clan_data.progress_message_ids[lap][boss_idx])
+        await progress_message.delete()
 
     async def _delete_carry_over_by_attack(
         self,
@@ -1292,10 +1332,10 @@ class ClanBattle(commands.Cog):
 
     async def check_command_arguments(
         self, ctx: SlashContext,
-        member: discord.User,
+        member: Optional[discord.User],
         lap: Optional[int] = None,
         boss_number: Optional[int] = None
-    ) -> Optional[Tuple[ClanData, PlayerData, int, int]]:
+    ) -> Optional[Tuple[ClanData, Optional[PlayerData], int, int]]:
         """凸宣言などでコマンドを使用する際の引数をチェックする"""
         clan_data = self.clan_data[ctx.channel.category_id]
 
@@ -1321,10 +1361,14 @@ class ClanBattle(commands.Cog):
             await ctx.send("不正な周回数です")
             return
 
-        player_data = clan_data.player_data_dict.get(member.id)
-        if not player_data:
-            await ctx.send(f"{member.display_name}は凸管理対象ではありません。")
-            return
+        if member:
+            player_data = clan_data.player_data_dict.get(member.id)
+            if not player_data:
+                await ctx.send(f"{member.display_name}は凸管理対象ではありません。")
+                return
+        else:
+            player_data = None
+
         return clan_data, player_data, lap, boss_index
 
 def setup(bot):
