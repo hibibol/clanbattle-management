@@ -446,7 +446,7 @@ class ClanBattle(commands.Cog):
             return
         clan_data, _, lap, boss_index = checked
 
-        await ctx.send(f"{lap}週目{boss_number}の進行用メッセージを再送します")
+        await ctx.send(f"{lap}週目{boss_index+1}の進行用メッセージを再送します")
 
         await self._delete_progress_message(clan_data, lap, boss_index)
         await self._send_new_progress_message(clan_data, lap, boss_index)
