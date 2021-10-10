@@ -97,7 +97,21 @@ def create_limit_time_text(raw_limit_time_text: str) -> str:
 
 
 def calc_carry_over_time(remain_hp: int, damage: int) -> int:
-    carry_over_time = math.ceil((1-remain_hp/damage) * 90 + 20)
+    """持ち越し時間を計算する
+
+    Parameters
+    ----------
+    remain_hp : int
+        ボスの残りHP
+    damage : int
+        ボスを討伐するときのダメージ
+
+    Returns
+    -------
+    int
+        持ち越し秒数
+    """
+    carry_over_time = math.ceil((1 - remain_hp / damage) * 90 + 20)
     if carry_over_time > 90:
         carry_over_time = 90
     return carry_over_time

@@ -1,8 +1,10 @@
 import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta
+from functools import reduce
 from logging import getLogger
 from typing import List, Optional, Tuple
+from operator import sub
 
 import discord
 from discord import colour
@@ -26,7 +28,7 @@ from cogs.cbutil.operation_type import (OPERATION_TYPE_DESCRIPTION_DICT,
 from cogs.cbutil.player_data import CarryOver, PlayerData
 from cogs.cbutil.reserve_data import ReserveData
 from cogs.cbutil.sqlite_util import SQLiteUtil
-from cogs.cbutil.util import get_damage, select_from_list
+from cogs.cbutil.util import calc_carry_over_time, get_damage, select_from_list
 from setting import (BOSS_COLOURS, EMOJI_ATTACK, EMOJI_CANCEL, EMOJI_CARRYOVER,
                      EMOJI_LAST_ATTACK, EMOJI_MAGIC, EMOJI_NO, EMOJI_PHYSICS,
                      EMOJI_REVERSE, EMOJI_SETTING, EMOJI_TASK_KILL, EMOJI_YES,
@@ -1373,6 +1375,38 @@ class ClanBattle(commands.Cog):
             player_data = None
 
         return clan_data, player_data, lap, boss_index
+
+    @cog_ext.cog_slash(
+        description="持ち越し時間を計算します。",
+        options=[
+            create_option(
+                name="boss_hp",
+                description="ボスの残りHP。引き算も出来ます。(例: `1000-500`)",
+                option_type=SlashCommandOptionType.STRING,
+                required=True
+            ),
+            create_option(
+                name="damage",
+                description="討伐する際のダメージ。",
+                option_type=SlashCommandOptionType.INTEGER,
+                required=True
+            )
+        ],
+        guild_ids=GUILD_IDS
+    )
+    async def calc_cot(
+        self, ctx: SlashContext, boss_hp: str, damage: int
+    ):
+        boss_hp = boss_hp.replace(" ", "").replace("　", "").replace("ー", "")
+        boss_hp_int = reduce(sub, [int(number) for number in boss_hp.split("-")])
+        if boss_hp_int > damage:
+            await ctx.send(f"ボスを討伐出来ません。\nボスHP: {boss_hp_int}\nダメージ: {damage}")
+            return
+        if boss_hp_int < 1:
+            await ctx.send(f"討伐済みです\nボスHP: {boss_hp_int}")
+        cot = calc_carry_over_time(boss_hp_int, damage)
+        await ctx.send(f"ボスHP: {boss_hp_int}\nダメージ: {damage}\n持ち越し秒数: {cot}秒")
+
 
 def setup(bot):
     bot.add_cog(ClanBattle(bot))  # TestCogにBotを渡してインスタンス化し、Botにコグとして登録する。
