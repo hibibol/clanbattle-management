@@ -44,10 +44,10 @@ class ClanBattle(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("loading ClanBattle data...")
-        asyncio.create_task(update_clanbattledata())
+        # asyncio.create_task(update_clanbattledata())
         # bossデータの読み込みが完了するまで待つ
-        while not ClanBattleData.boudaries:
-            await asyncio.sleep(1)
+        # while not ClanBattleData.boudaries:
+            # await asyncio.sleep(1)
         self.clan_data: defaultdict[int, Optional[ClanData]] = SQLiteUtil.load_clandata_dict()
         self.clan_battle_data = ClanBattleData()
         self.ready = True
@@ -654,8 +654,6 @@ class ClanBattle(commands.Cog):
         )
         if boss_status_data.beated:
             pr_embed.set_thumbnail(url=TREASURE_CHEST)
-        else:
-            pr_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
         return pr_embed
 
     async def _initialize_progress_messages(
@@ -884,7 +882,6 @@ class ClanBattle(commands.Cog):
             description="\n".join(reserve_message_list),
             colour=BOSS_COLOURS[boss_index]
         )
-        rs_embed.set_thumbnail(url=ClanBattleData.icon[boss_index])
         return rs_embed
 
     async def _initialize_reserve_message(self, clan_data: ClanData) -> None:
