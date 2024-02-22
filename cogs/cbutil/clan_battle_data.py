@@ -7,7 +7,7 @@ from setting import BASE_URL, JST
 
 
 class ClanBattleData:
-    boss_names: List[str] = ["ボス1", "ボス2", "ボス3", "ボス4", "ボス5"]
+    boss_names: List[str] = ["1ボス", "2ボス", "3ボス", "4ボス", "5ボス"]
     hp: List[List[int]] = [
         [1200, 1500, 2000, 2300, 3000],
         [3500, 4000, 4500, 5000, 5800],
