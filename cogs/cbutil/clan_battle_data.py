@@ -9,11 +9,9 @@ from setting import BASE_URL, JST
 class ClanBattleData:
     boss_names: List[str] = ["ボス1", "ボス2", "ボス3", "ボス4", "ボス5"]
     hp: List[List[int]] = [
-        [1200, 3500, 54000],
-        [1500, 4000, 56000],
-        [2000, 4500, 60000],
-        [2300, 5000, 62000],
-        [3000, 5800, 64000],
+        [1200, 1500, 2000, 2300, 3000],
+        [3500, 4000, 4500, 5000, 5800],
+        [54000, 56000, 60000, 62000, 64000],
     ]
     boudaries: List[Tuple[int]] = [(1, 6), (7, 22), (23, -1)]
     start_time: datetime = datetime.now()
