@@ -11,7 +11,7 @@ class ClanBattleData:
     hp: List[List[int]] = [
         [1200, 1500, 2000, 2300, 3000],
         [3500, 4000, 4500, 5000, 5800],
-        [60000, 62000, 66000, 68000, 70000],
+        [70000, 72000, 76000, 78000, 80000],
     ]
     boudaries: List[Tuple[int]] = [(1, 6), (7, 22), (23, -1)]
     start_time: datetime = datetime.now()
